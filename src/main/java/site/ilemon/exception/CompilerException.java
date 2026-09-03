@@ -9,8 +9,15 @@ public class CompilerException extends RuntimeException {
     private final Diagnostic diagnostic;
 
     public CompilerException(String message) {
-        this(Diagnostic.of(Severity.ERROR, DiagnosticCodes.INTERNAL_COMPILER_ERROR,
-                DiagnosticEngine.english(message), null, "compiler error"));
+        this(internalDiagnostic(message));
+    }
+
+    private static Diagnostic internalDiagnostic(String message) {
+        var engine = new DiagnosticEngine();
+        return engine.error(DiagnosticCodes.INTERNAL_COMPILER_ERROR)
+                .message(message)
+                .primary(null, "compiler error")
+                .report();
     }
 
     public CompilerException(Diagnostic diagnostic) {

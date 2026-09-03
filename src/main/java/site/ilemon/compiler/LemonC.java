@@ -103,7 +103,8 @@ public class LemonC {
             }
             return 0;
         } catch (CompilerException e) {
-            err.println("compile failed: " + e.getMessage());
+            err.println("compile failed:");
+            err.println(new DiagnosticRenderer((file, line) -> null).render(e.getDiagnostic()));
             return 1;
         } catch (IOException e) {
             err.println("io error: " + e.getMessage());

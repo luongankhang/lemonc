@@ -7,6 +7,7 @@ import site.ilemon.lexer.TokenKind;
 import site.ilemon.exception.ParseException;
 import site.ilemon.diagnostic.Diagnostic;
 import site.ilemon.diagnostic.DiagnosticEngine;
+import site.ilemon.exception.CompilerException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -678,7 +679,7 @@ public class Parser {
 			case "<=" -> new Ast.Expr.LTE(expr, right, lineNumber);
 			case "==" -> new Ast.Expr.EQ(expr, right, lineNumber);
 			case "!=" -> new Ast.Expr.NEQ(expr, right, lineNumber);
-			default -> throw new RuntimeException("Unexpected value: " + operator);
+			default -> throw new CompilerException("Unexpected parser operator: " + operator);
 			};
 
 		}

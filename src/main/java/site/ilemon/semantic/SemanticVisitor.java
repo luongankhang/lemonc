@@ -187,9 +187,11 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Expr.Call obj) {
-        Ast.Type.T returnType = validateMethodCall(obj.getName(), obj.getInputParams(), obj.getLineNum());
+        Ast.Type.T returnType = validateMethodCall(obj.getName(), obj.getInputParams(), obj.getLineNum(), obj.getSpan());
         if (returnType.getKind() == TypeKind.VOID) {
-            error(obj.getLineNum(), "void 方法 '" + obj.getName() + "' 不能作为表达式使用");
+            semanticError("SEM-INVALID-SYMBOL-USAGE", "void method '" + obj.getName()
+                    + "' cannot be used as an expression", obj.getLineNum(), obj.getSpan(),
+                    "void function used as value", "call a non-void function instead", null);
         }
         obj.setReturnType(returnType);
         this.currType = returnType;
@@ -257,7 +259,9 @@ public class SemanticVisitor implements ISemanticVisitor {
             return;
         }
         if( mTable.get(obj.getId()) == null )
-            error( obj.getLineNum(), "未定义的变量: " + obj.getId());
+            semanticError("SEM-UNKNOWN-VARIABLE", "undefined variable: " + obj.getId(),
+                    obj.getLineNum(), obj.getSpan(), "unknown variable",
+                    "the name is not declared in the current method scope", null);
         if (mTable.get(obj.getId()) == null) {
             this.currType = unknownType();
             obj.setType(this.currType);
@@ -336,7 +340,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         for(int i = 0; i < mainClassSingle.getMethods().size(); i++){
             Ast.Method.MethodSingle method = (Ast.Method.MethodSingle) mainClassSingle.getMethods().get(i);
             if( methodMap.containsKey(method.getId())){
-                error(method.getLineNum(), "重复定义的方法: " + method.getId());
+                semanticError("SEM-DUPLICATE-DECLARATION", "duplicate method declaration: " + method.getId(),
+                        method.getLineNum(), method.getSpan(), "duplicate method", "the method was declared earlier", null);
             }else{
                 methodMap.put(method.getId(),method);
                 methodNameRetTypeMap.put(method.getId(),method.getRetType());
@@ -585,7 +590,7 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Stmt.Call obj) {
-        Ast.Type.T returnType = validateMethodCall(obj.getName(), obj.getInputParams(), obj.getLineNum());
+        Ast.Type.T returnType = validateMethodCall(obj.getName(), obj.getInputParams(), obj.getLineNum(), obj.getSpan());
         obj.setReturnType(returnType);
         this.currType = returnType;
     }
@@ -676,6 +681,30 @@ public class SemanticVisitor implements ISemanticVisitor {
         throw new SemanticException(diagnostic);
     }
 
+    private void semanticError(String code, String message, int lineNum,
+                               site.ilemon.util.SourceSpan span, String primaryLabel,
+                               String note, String suggestion) {
+        this.pass = false;
+        var builder = diagnosticEngine.error(code)
+                .message(message)
+                .primary(span == null
+                        ? site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1)
+                        : span, primaryLabel);
+        if (note != null) {
+            builder.note(note);
+        }
+        if (suggestion != null && span != null) {
+            builder.suggestion(span, suggestion);
+        }
+        Diagnostic diagnostic = builder.report();
+        if (this.collectErrors) {
+            this.errors.add(diagnostic.message());
+            this.errorLineNumbers.add(lineNum);
+            return;
+        }
+        throw new SemanticException(diagnostic);
+    }
+
     private boolean isMatch(Ast.Type.T target,Ast.Type.T curr){
         if( target == null || curr == null )
             return false;
@@ -758,10 +787,13 @@ public class SemanticVisitor implements ISemanticVisitor {
      * 校验方法是否存在、参数个数是否匹配、参数类型是否匹配。
      * @return 方法的返回类型
      */
-    private Ast.Type.T validateMethodCall(String methodName, ArrayList<Ast.Expr.T> inputParams, int lineNum) {
+    private Ast.Type.T validateMethodCall(String methodName, ArrayList<Ast.Expr.T> inputParams,
+                                          int lineNum, site.ilemon.util.SourceSpan span) {
         Ast.Method.MethodSingle method = this.methodMap.get(methodName);
         if (method == null) {
-            error(lineNum, "未定义的方法: " + methodName);
+            semanticError("SEM-UNKNOWN-FUNCTION", "undefined function: " + methodName,
+                    lineNum, span, "unknown function",
+                    "no function with this name is declared in the current program", null);
             return unknownType();
         }
         if (inputParams.size() != method.getFormals().size()) {
@@ -816,7 +848,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            error(obj.getLineNum(), "未定义的数组: " + obj.getArrayName());
+            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+                    obj.getLineNum(), obj.getSpan(), "unknown array",
+                    "the name is not declared in the current method scope", null);
         }
         if (arrayType == null) {
             this.currType = unknownType();
@@ -851,7 +885,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            error(obj.getLineNum(), "未定义的数组: " + obj.getArrayName());
+            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+                    obj.getLineNum(), obj.getSpan(), "unknown array",
+                    "the name is not declared in the current method scope", null);
         }
         if (arrayType == null) {
             this.currType = unknownType();
@@ -877,7 +913,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            error(obj.getLineNum(), "未定义的数组: " + obj.getArrayName());
+            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+                    obj.getLineNum(), obj.getSpan(), "unknown array",
+                    "the name is not declared in the current method scope", null);
             this.currType = unknownType();
             return;
         }

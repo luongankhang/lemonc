@@ -260,6 +260,7 @@ public class Parser {
 	private Ast.Declare.T parseDeclare() throws IOException {
 		Ast.Type.T type = parseType();
 		if( look.kind == TokenKind.Id ){
+			Token idToken = look;
 			String id = look.lexeme;
 			int lineNumber = look.lineNumber;
 			move();
@@ -286,11 +287,14 @@ public class Parser {
 					error(String.format("不支持的数组基础类型: %s", type));
 					return null;
 				}
-				return new Ast.Declare.DeclareSingle(arrayType, id, lineNumber);
+				Ast.Declare.DeclareSingle declaration = new Ast.Declare.DeclareSingle(arrayType, id, lineNumber);
+				declaration.setSpan(tokenSpan(idToken));
+				return declaration;
 			}
 			// type id;
 			else if( look.kind == TokenKind.Semicolon) {
 				Ast.Declare.DeclareSingle d = new Ast.Declare.DeclareSingle(type,id,lineNumber);
+				d.setSpan(tokenSpan(idToken));
 				match(";");
 				return d;
 			}
@@ -336,6 +340,7 @@ public class Parser {
 	private Ast.Declare.T parseFormalParam() throws IOException {
 		Ast.Type.T type = parseType();
 		String id = look.lexeme;
+		Token idToken = look;
 		int lineNumber = look.lineNumber;
 		match(new Token(TokenKind.Id));
 		if (look.kind == TokenKind.Lbracket) {
@@ -348,7 +353,9 @@ public class Parser {
 			}
 			type = arrayType;
 		}
-		return new Ast.Declare.DeclareSingle(type, id, lineNumber);
+		Ast.Declare.DeclareSingle declaration = new Ast.Declare.DeclareSingle(type, id, lineNumber);
+		declaration.setSpan(tokenSpan(idToken));
+		return declaration;
 	}
 
 	/**
@@ -736,6 +743,7 @@ public class Parser {
 				match("]");
 				// Sử dụng constructor cũ
 				expr = new Ast.Expr.ArrayAccess(arrayName, index, lineNum); // Dùng lineNumber
+				expr.setSpan(tokenSpan(temp));
 			}
 			else if( ahead.kind == TokenKind.Dot){
 				String arrayName = look.lexeme;
@@ -752,6 +760,7 @@ public class Parser {
 			else{
 				// Sử dụng lineNumber cho constructor cũ
 				expr = new Ast.Expr.Id(look.lexeme, temp.lineNumber); // Dùng lineNumber
+				expr.setSpan(tokenSpan(temp));
 				move();
 			}
 			return expr;
@@ -791,7 +800,8 @@ public class Parser {
 	private Ast.Expr.T parseMethodCall() throws IOException {
 		Token ahead;
 		Ast.Expr.T expr;
-		String methodName = look.lexeme;
+	String methodName = look.lexeme;
+	Token methodToken = look;
 		int lineNumber = look.lineNumber;
 		move();
 		match("(");
@@ -811,6 +821,7 @@ public class Parser {
 
 		match(")");
 		expr = new Ast.Expr.Call(methodName, args, lineNumber);
+		expr.setSpan(tokenSpan(methodToken));
 		return expr;
 	}
 }

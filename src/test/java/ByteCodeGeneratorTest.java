@@ -117,6 +117,16 @@ public class ByteCodeGeneratorTest {
     }
 
     @Test
+    public void testLongArrayStoreAccountsForWidenedValue() {
+        assertEquals(4, ByteCodeGenerator.calculateMaxStack(stmts(
+                new Ast.Stmt.Aload(0),
+                new Ast.Stmt.Ldc(0),
+                new Ast.Stmt.Ldc(42),
+                new Ast.Stmt.I2l(),
+                new Ast.Stmt.Lastore())));
+    }
+
+    @Test
     public void testMaxLocalsUsesActualLoadStoreIndexes() {
         assertEquals(8, ByteCodeGenerator.calculateMaxLocals(method("helper",
                 Collections.<Ast.Declare.DeclareSingle>emptyList(),

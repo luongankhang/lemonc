@@ -341,6 +341,8 @@ public class Parser {
 			return new Ast.Type.IntArray(size);
 		} else if (baseType instanceof Ast.Type.Byte) {
 			return new Ast.Type.ByteArray(size);
+		} else if (baseType instanceof Ast.Type.Long) {
+			return new Ast.Type.LongArray(size);
 		} else if (baseType instanceof Ast.Type.Float) {
 			return new Ast.Type.FloatArray(size);
 		} else if (baseType instanceof Ast.Type.Double) {
@@ -760,11 +762,24 @@ public class Parser {
 			match(new Token(TokenKind.Rparen));
 			return expr;
 		}else if(look.kind==TokenKind.Sub){
+			Token minusToken = look;
 			int lineNumber = look.lineNumber;
 			move();
+			// The magnitude of Long.MIN_VALUE is one larger than Long.MAX_VALUE.
+			// It is valid only when immediately preceded by unary minus.
+			if(look.kind==Num && "9223372036854775808".equals(look.lexeme)) {
+				Token numberToken = look;
+				Ast.Expr.Number minLong = new Ast.Expr.Number(
+						new Ast.Type.Long(), Long.MIN_VALUE, lineNumber);
+				minLong.setSpan(tokenSpan(numberToken));
+				move();
+				return minLong;
+			}
 			Ast.Expr.T operand = parseFactor();
-			return new Ast.Expr.Sub(new Ast.Expr.Number(new Ast.Type.Int(), 0, lineNumber),
-					operand, lineNumber);
+			Ast.Expr.Sub result = new Ast.Expr.Sub(
+					new Ast.Expr.Number(new Ast.Type.Int(), 0, lineNumber), operand, lineNumber);
+			result.setSpan(tokenSpan(minusToken));
+			return result;
 		}else if(look.kind== Num){
 			Token numberToken = look;
 			Ast.Type.T literalType;

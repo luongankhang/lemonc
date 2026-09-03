@@ -164,6 +164,14 @@ public String id;
             public String toString() { return "@byte[]"; }
         }
 
+        public static class LongArray extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            @Override
+            public TypeKind getKind() { return TypeKind.LONG_ARRAY; }
+            @Override
+            public String toString() { return "@long[]"; }
+        }
+
         public static class FloatArray extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 @Override
@@ -630,10 +638,18 @@ public Type.T elementType;
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 }
 
+        public static class Laload extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+        }
+
         // boolean数组存储: bastore
         public static class Bastore extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 }
+
+        public static class Lastore extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+        }
 
         public static class Aaload extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }

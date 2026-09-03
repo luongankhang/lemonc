@@ -927,7 +927,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         TypeKind kind = type.getKind();
         return kind == TypeKind.INT_ARRAY || kind == TypeKind.FLOAT_ARRAY
                 || kind == TypeKind.DOUBLE_ARRAY || kind == TypeKind.BOOL_ARRAY
-                || kind == TypeKind.STRING_ARRAY || kind == TypeKind.BYTE_ARRAY;
+                || kind == TypeKind.STRING_ARRAY || kind == TypeKind.BYTE_ARRAY
+                || kind == TypeKind.LONG_ARRAY;
     }
 
     /**
@@ -1007,6 +1008,11 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Type.ByteArray obj) {
+        this.currType = obj;
+    }
+
+    @Override
+    public void visit(Ast.Type.LongArray obj) {
         this.currType = obj;
     }
 
@@ -1147,6 +1153,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             return new Ast.Type.Int();
         } else if (arrayType instanceof Ast.Type.ByteArray) {
             return new Ast.Type.Byte();
+        } else if (arrayType instanceof Ast.Type.LongArray) {
+            return new Ast.Type.Long();
         } else if (arrayType instanceof Ast.Type.FloatArray) {
             return new Ast.Type.Float();
         } else if (arrayType instanceof Ast.Type.DoubleArray) {

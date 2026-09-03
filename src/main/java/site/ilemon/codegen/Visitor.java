@@ -86,7 +86,9 @@ public interface Visitor {
     void visit(Ast.Stmt.Daload s);
     void visit(Ast.Stmt.Dastore s);
     void visit(Ast.Stmt.Baload s);
+    void visit(Ast.Stmt.Laload s);
     void visit(Ast.Stmt.Bastore s);
+    void visit(Ast.Stmt.Lastore s);
     void visit(Ast.Stmt.Aaload s);
     void visit(Ast.Stmt.Aastore s);
     void visit(Ast.Stmt.Arraylength s);
@@ -101,6 +103,7 @@ public interface Visitor {
     void visit(Ast.Type.Bool obj);
     void visit(Ast.Type.Byte obj);
     void visit(Ast.Type.ByteArray obj);
+    void visit(Ast.Type.LongArray obj);
     void visit(Ast.Type.StringArray obj);
 
 }

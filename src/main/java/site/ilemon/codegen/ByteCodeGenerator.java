@@ -289,9 +289,11 @@ public class ByteCodeGenerator implements Visitor {
         if (stmt instanceof Ast.Stmt.Newarray) return deltas(-1, 1);
         if (stmt instanceof Ast.Stmt.Iaload || stmt instanceof Ast.Stmt.Faload
                 || stmt instanceof Ast.Stmt.Baload || stmt instanceof Ast.Stmt.Aaload) return deltas(-2, 1);
+        if (stmt instanceof Ast.Stmt.Laload) return deltas(-2, 2);
         if (stmt instanceof Ast.Stmt.Daload) return deltas(-2, 2);
         if (stmt instanceof Ast.Stmt.Iastore || stmt instanceof Ast.Stmt.Fastore
                 || stmt instanceof Ast.Stmt.Bastore || stmt instanceof Ast.Stmt.Aastore) return deltas(-3);
+        if (stmt instanceof Ast.Stmt.Lastore) return deltas(-4);
         if (stmt instanceof Ast.Stmt.Dastore) return deltas(-4);
         if (stmt instanceof Ast.Stmt.Arraylength) return deltas(-1, 1);
 
@@ -373,6 +375,7 @@ public class ByteCodeGenerator implements Visitor {
             case STRING -> "Ljava/lang/String;";
             case INT_ARRAY -> "[I";
             case BYTE_ARRAY -> "[B";
+            case LONG_ARRAY -> "[J";
             case FLOAT_ARRAY -> "[F";
             case DOUBLE_ARRAY -> "[D";
             case BOOL_ARRAY -> "[Z";
@@ -770,6 +773,11 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     @Override
+    public void visit(Ast.Type.LongArray obj) {
+
+    }
+
+    @Override
     public void visit(Ast.Type.Bool obj) {
 
     }
@@ -780,6 +788,7 @@ public class ByteCodeGenerator implements Visitor {
         String type = switch (s.elementType) {
             case Ast.Type.Int i -> "int";
             case Ast.Type.Byte b -> "byte";
+            case Ast.Type.Long l -> "long";
             case Ast.Type.Float f -> "float";
             case Ast.Type.Double d -> "double";
             case Ast.Type.Bool b -> "boolean";
@@ -817,8 +826,16 @@ public class ByteCodeGenerator implements Visitor {
         this.iwriteln("baload");
     }
 
+    public void visit(Ast.Stmt.Laload s) {
+        this.iwriteln("laload");
+    }
+
     public void visit(Ast.Stmt.Bastore s) {
         this.iwriteln("bastore");
+    }
+
+    public void visit(Ast.Stmt.Lastore s) {
+        this.iwriteln("lastore");
     }
 
     public void visit(Ast.Stmt.Aaload s) {

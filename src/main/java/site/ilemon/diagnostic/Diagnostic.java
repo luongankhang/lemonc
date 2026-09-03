@@ -12,8 +12,8 @@ public record Diagnostic(Severity severity, String code, String message,
                          List<DiagnosticSuggestion> suggestions,
                          TypeDiagnosticContext typeContext) {
     public Diagnostic {
-        if (severity == null || code == null || message == null) {
-            throw new IllegalArgumentException("Diagnostic severity, code, and message are required");
+        if (severity == null || !DiagnosticCodes.isValid(code) || message == null) {
+            throw new IllegalArgumentException("Diagnostic severity, code (E####), and message are required");
         }
         primaryLabel = primaryLabel == null ? "" : primaryLabel;
         secondaryLabels = List.copyOf(secondaryLabels == null ? List.of() : secondaryLabels);

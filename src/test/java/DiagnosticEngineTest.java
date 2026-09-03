@@ -1,6 +1,7 @@
 import org.junit.Test;
 import site.ilemon.diagnostic.Diagnostic;
 import site.ilemon.diagnostic.DiagnosticEngine;
+import site.ilemon.diagnostic.DiagnosticCodes;
 import site.ilemon.diagnostic.Severity;
 import site.ilemon.util.SourceSpan;
 
@@ -14,7 +15,7 @@ public class DiagnosticEngineTest {
         var primary = SourceSpan.of("Example.lemon", 2, 5, 1, 3, 1, 6);
         var secondary = SourceSpan.singlePoint("Example.lemon", 12, 2, 1);
 
-        Diagnostic diagnostic = engine.error("E100")
+        Diagnostic diagnostic = engine.error("E3001")
                 .message("invalid assignment")
                 .primary(primary, "assignment")
                 .type("int", "bool", "True", "assignment")
@@ -26,7 +27,7 @@ public class DiagnosticEngineTest {
         assertEquals(1, engine.diagnostics().size());
         Diagnostic stored = engine.diagnostics().get(0);
         assertEquals(Severity.ERROR, stored.severity());
-        assertEquals("E100", stored.code());
+        assertEquals("E3001", stored.code());
         assertEquals(primary, stored.primarySpan());
         assertEquals(1, stored.secondaryLabels().size());
         assertEquals(1, stored.notes().size());
@@ -40,12 +41,20 @@ public class DiagnosticEngineTest {
     public void omitsLowConfidenceFixIts() {
         var engine = new DiagnosticEngine();
         var span = SourceSpan.singlePoint("Example.lemon", 0, 1, 1);
-        Diagnostic diagnostic = engine.error("E101")
+        Diagnostic diagnostic = engine.error("E2001")
                 .message("unknown name")
                 .primary(span, "name")
                 .suggestion(span, "unrelated", "replace the name", 0.5)
                 .report();
 
         assertTrue(diagnostic.suggestions().isEmpty());
+    }
+
+    @Test
+    public void acceptsOnlyStablePhaseCodes() {
+        assertTrue(DiagnosticCodes.isValid("E0001"));
+        assertTrue(DiagnosticCodes.isValid("E9001"));
+        assertTrue(!DiagnosticCodes.isValid("LEX001"));
+        assertTrue(!DiagnosticCodes.isValid("E10000"));
     }
 }

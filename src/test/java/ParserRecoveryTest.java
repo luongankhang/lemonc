@@ -28,8 +28,8 @@ public class ParserRecoveryTest {
             } catch (site.ilemon.exception.ParseException expected) {
                 List<Diagnostic> diagnostics = parser.getDiagnostics();
                 assertEquals(2, diagnostics.size());
-                assertEquals("PARSE003", diagnostics.get(0).code());
-                assertEquals("PARSE003", diagnostics.get(1).code());
+                assertEquals("E1003", diagnostics.get(0).code());
+                assertEquals("E1003", diagnostics.get(1).code());
                 assertNotEquals(diagnostics.get(0).primarySpan(), diagnostics.get(1).primarySpan());
                 assertEquals(1, diagnostics.get(0).primarySpan().getStartLine());
                 assertEquals(1, diagnostics.get(1).primarySpan().getStartLine());

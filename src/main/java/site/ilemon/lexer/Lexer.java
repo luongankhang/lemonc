@@ -481,7 +481,7 @@ public class Lexer {
             }
             result.append('^');
         }
-        var builder = diagnosticEngine.error("LEX001")
+        var builder = diagnosticEngine.error(site.ilemon.diagnostic.DiagnosticCodes.LEX_INVALID_INPUT)
                 .message(result.toString())
                 .primary(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source");
         if (message.contains("did you mean '&&'")) {

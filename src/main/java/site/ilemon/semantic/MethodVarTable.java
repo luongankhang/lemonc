@@ -49,7 +49,7 @@ public class MethodVarTable {
     }
 
     private SemanticException duplicate(String message, Ast.Declare.T declaration) {
-        Diagnostic diagnostic = diagnosticEngine.error("SEM-DUPLICATE-DECLARATION")
+        Diagnostic diagnostic = diagnosticEngine.error(site.ilemon.diagnostic.DiagnosticCodes.SEM_DUPLICATE_DECLARATION)
                 .message(message)
                 .primary(declaration.getSpan() == null
                         ? SourceSpan.singlePoint(null, 0, Math.max(1, declaration.getLineNum()), 1)

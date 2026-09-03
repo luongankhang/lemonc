@@ -4,6 +4,7 @@ import site.ilemon.ast.Ast;
 import site.ilemon.ast.Ast.Type.TypeKind;
 import site.ilemon.exception.SemanticException;
 import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticCodes;
 import site.ilemon.diagnostic.DiagnosticEngine;
 import site.ilemon.visitor.ISemanticVisitor;
 
@@ -118,7 +119,7 @@ public class SemanticVisitor implements ISemanticVisitor {
             return;
         }
         if (!isMatch(leftType, rightType)) {
-            typeError("SEM-TYPE-OPERATOR", typeName(leftType), typeName(rightType), "binary expression",
+            typeError(DiagnosticCodes.TYPE_OPERATOR, typeName(leftType), typeName(rightType), "binary expression",
                     lineNum, null, "operator '" + operator + "'", "operand types must match or use a supported numeric conversion");
         }
         this.currType = leftType;
@@ -127,7 +128,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     private void checkBooleanOperandTypes(int lineNum, String operator, Ast.Type.T leftType, Ast.Type.T rightType) {
         if (leftType == null || rightType == null ||
                 leftType.getKind() != TypeKind.BOOL || rightType.getKind() != TypeKind.BOOL) {
-            typeError("SEM-TYPE-OPERATOR", "bool", typeName(leftType) + " and " + typeName(rightType),
+            typeError(DiagnosticCodes.TYPE_OPERATOR, "bool", typeName(leftType) + " and " + typeName(rightType),
                     "binary expression", lineNum, null, "operator '" + operator + "'", "use boolean operands");
         }
     }
@@ -167,12 +168,12 @@ public class SemanticVisitor implements ISemanticVisitor {
             this.visit(obj.getId());
             Ast.Type.T targetType = this.currType;
             if (isArrayType(this.currType) || isArrayType(exprType)) {
-                typeError("SEM-TYPE-ASSIGNMENT", typeName(targetType), typeName(exprType),
+                typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
                         expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
                         "array assignment", "arrays cannot be assigned as whole values");
             }
             if( !isMatch(this.currType,exprType))
-                typeError("SEM-TYPE-ASSIGNMENT", typeName(targetType), typeName(exprType),
+                typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
                         expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
                         "assignment to '" + obj.getId().getId() + "'", null);
         }
@@ -190,7 +191,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Expr.Call obj) {
         Ast.Type.T returnType = validateMethodCall(obj.getName(), obj.getInputParams(), obj.getLineNum(), obj.getSpan());
         if (returnType.getKind() == TypeKind.VOID) {
-            semanticError("SEM-INVALID-SYMBOL-USAGE", "void method '" + obj.getName()
+            semanticError(DiagnosticCodes.SEM_INVALID_SYMBOL_USAGE, "void method '" + obj.getName()
                     + "' cannot be used as an expression", obj.getLineNum(), obj.getSpan(),
                     "void function used as value", "call a non-void function instead", null);
         }
@@ -222,7 +223,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         if (leftType == null || rightType == null
                 || leftType.getKind() != TypeKind.INT
                 || rightType.getKind() != TypeKind.INT) {
-            typeError("SEM-TYPE-OPERATOR", "int", typeName(leftType) + " and " + typeName(rightType),
+            typeError(DiagnosticCodes.TYPE_OPERATOR, "int", typeName(leftType) + " and " + typeName(rightType),
                     expressionName(obj), obj.getLineNum(), obj.getSpan(), "operator '%'", "the remainder operator requires int operands");
         }
         this.currType = new Ast.Type.Int();
@@ -252,14 +253,14 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Expr.Id obj) {
         MethodVarTable mTable = this.methodVarTable.get(currMethodName);
         if( mTable == null )
-            error( obj.getLineNum(), "内部错误: 方法 '" + currMethodName + "' 的变量表未找到");
+            internalError(obj.getLineNum(), "internal error: variable table for method '" + currMethodName + "' was not found");
         if (mTable == null) {
             this.currType = unknownType();
             obj.setType(this.currType);
             return;
         }
         if( mTable.get(obj.getId()) == null )
-            semanticError("SEM-UNKNOWN-VARIABLE", "undefined variable: " + obj.getId(),
+            semanticError(DiagnosticCodes.SEM_UNKNOWN_VARIABLE, "undefined variable: " + obj.getId(),
                     obj.getLineNum(), obj.getSpan(), "unknown variable",
                     "the name is not declared in the current method scope",
                     nearestName(obj.getId(), mTable.names()));
@@ -281,7 +282,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Stmt.If obj) {
         this.visit(obj.getCondition());
         if (this.currType.getKind() != TypeKind.BOOL)
-            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+            typeError(DiagnosticCodes.TYPE_CONDITION, "bool", typeName(this.currType), expressionName(obj.getCondition()),
                     obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "if condition", null);
 
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
@@ -341,7 +342,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         for(int i = 0; i < mainClassSingle.getMethods().size(); i++){
             Ast.Method.MethodSingle method = (Ast.Method.MethodSingle) mainClassSingle.getMethods().get(i);
             if( methodMap.containsKey(method.getId())){
-                semanticError("SEM-DUPLICATE-DECLARATION", "duplicate method declaration: " + method.getId(),
+                semanticError(DiagnosticCodes.SEM_DUPLICATE_DECLARATION, "duplicate method declaration: " + method.getId(),
                         method.getLineNum(), method.getSpan(), "duplicate method", "the method was declared earlier", null);
             }else{
                 methodMap.put(method.getId(),method);
@@ -358,7 +359,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     private void validateMainMethod() {
         Ast.Method.MethodSingle main = this.methodMap.get("main");
         if (main == null) {
-            error(1, "程序必须定义 void main()");
+            error(1, "program must define void main()");
         }
         if (main == null) {
             return;
@@ -479,13 +480,13 @@ public class SemanticVisitor implements ISemanticVisitor {
             this.visit(expr);
             char placeholder = placeholders.get(i);
             if (placeholder == 'd' && this.currType.getKind() != TypeKind.INT) {
-                typeError("SEM-TYPE-PRINTF", "int", typeName(this.currType), expressionName(expr),
+                typeError(DiagnosticCodes.TYPE_FORMAT, "int", typeName(this.currType), expressionName(expr),
                         expr.getLineNum(), expr.getSpan(), "printf %d argument", null);
             }
             if (placeholder == 'f'
                     && this.currType.getKind() != TypeKind.FLOAT
                     && this.currType.getKind() != TypeKind.DOUBLE) {
-                typeError("SEM-TYPE-PRINTF", "float or double", typeName(this.currType), expressionName(expr),
+                typeError(DiagnosticCodes.TYPE_FORMAT, "float or double", typeName(this.currType), expressionName(expr),
                         expr.getLineNum(), expr.getSpan(), "printf %f argument", null);
             }
         }
@@ -515,7 +516,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Expr.Not obj) {
         this.visit(obj.getExpr());
         if( this.currType.getKind() != TypeKind.BOOL)
-            typeError("SEM-TYPE-OPERATOR", "bool", typeName(this.currType), expressionName(obj.getExpr()),
+            typeError(DiagnosticCodes.TYPE_OPERATOR, "bool", typeName(this.currType), expressionName(obj.getExpr()),
                     obj.getLineNum(), obj.getSpan(), "operator '!'", "use a boolean expression");
         this.currType = new Ast.Type.Bool();
     }
@@ -541,7 +542,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getExpr());
         if( !isMatch(typeOfMethodDeclared,this.currType))
-            typeError("SEM-TYPE-RETURN", typeName(typeOfMethodDeclared), typeName(this.currType),
+            typeError(DiagnosticCodes.TYPE_RETURN, typeName(typeOfMethodDeclared), typeName(this.currType),
                     expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "return statement", null);
     }
 
@@ -550,7 +551,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Stmt.While obj) {
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
-            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+            typeError(DiagnosticCodes.TYPE_CONDITION, "bool", typeName(this.currType), expressionName(obj.getCondition()),
                     obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "while condition", null);
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
@@ -567,7 +568,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
-            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+            typeError(DiagnosticCodes.TYPE_CONDITION, "bool", typeName(this.currType), expressionName(obj.getCondition()),
                     obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "for condition", null);
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
@@ -673,9 +674,23 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     private void error(int lineNum, String msg){
         this.pass = false;
-        Diagnostic diagnostic = diagnosticEngine.error("SEM001")
+        Diagnostic diagnostic = diagnosticEngine.error(DiagnosticCodes.SEM_GENERAL)
                 .message(msg)
                 .primary(site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1), "here")
+                .report();
+        if (this.collectErrors) {
+            this.errors.add(diagnostic.message());
+            this.errorLineNumbers.add(lineNum);
+            return;
+        }
+        throw new SemanticException(diagnostic);
+    }
+
+    private void internalError(int lineNum, String message) {
+        this.pass = false;
+        Diagnostic diagnostic = diagnosticEngine.error(DiagnosticCodes.INTERNAL_COMPILER_ERROR)
+                .message(message)
+                .primary(site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1), "internal compiler error")
                 .report();
         if (this.collectErrors) {
             this.errors.add(diagnostic.message());
@@ -835,7 +850,7 @@ public class SemanticVisitor implements ISemanticVisitor {
                     op, typeName(leftType), typeName(this.currType)));
         }
         if (promoteNumeric(leftType, this.currType) == null && !isMatch(leftType, this.currType)) {
-            typeError("SEM-TYPE-OPERATOR", typeName(leftType), typeName(this.currType), "comparison expression",
+            typeError(DiagnosticCodes.TYPE_OPERATOR, typeName(leftType), typeName(this.currType), "comparison expression",
                     lineNum, left.getSpan(), "comparison operator '" + op + "'", null);
         }
         this.currType = new Ast.Type.Bool();
@@ -849,7 +864,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         Ast.Type.T leftType = this.currType;
         this.visit(right);
         if (promoteNumeric(leftType, this.currType) == null) {
-            typeError("SEM-TYPE-OPERATOR", "numeric operands", typeName(leftType) + " and " + typeName(this.currType),
+            typeError(DiagnosticCodes.TYPE_OPERATOR, "numeric operands", typeName(leftType) + " and " + typeName(this.currType),
                     "comparison expression", lineNum, left.getSpan(), "comparison operator '" + op + "'", null);
         }
         this.currType = new Ast.Type.Bool();
@@ -864,7 +879,7 @@ public class SemanticVisitor implements ISemanticVisitor {
                                           int lineNum, site.ilemon.util.SourceSpan span) {
         Ast.Method.MethodSingle method = this.methodMap.get(methodName);
         if (method == null) {
-            semanticError("SEM-UNKNOWN-FUNCTION", "undefined function: " + methodName,
+            semanticError(DiagnosticCodes.SEM_UNKNOWN_FUNCTION, "undefined function: " + methodName,
                     lineNum, span, "unknown function",
                     "no function with this name is declared in the current program",
                     nearestName(methodName, methodMap.keySet()));
@@ -881,7 +896,7 @@ public class SemanticVisitor implements ISemanticVisitor {
             Ast.Type.T expectedType = this.currType;
             if (!isMatch(expectedType, actualType)) {
                 Ast.Expr.T argument = inputParams.get(i);
-                typeError("SEM-TYPE-ARGUMENT", typeName(expectedType), typeName(actualType), expressionName(argument),
+                typeError(DiagnosticCodes.TYPE_ARGUMENT, typeName(expectedType), typeName(actualType), expressionName(argument),
                         argument.getLineNum(), argument.getSpan(), "argument " + (i + 1) + " of '" + methodName + "'", null);
             }
         }
@@ -915,7 +930,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         // 检查数组是否已声明
         MethodVarTable mTable = this.methodVarTable.get(currMethodName);
         if (mTable == null) {
-            error(obj.getLineNum(), "内部错误: 方法 '" + currMethodName + "' 的变量表未找到");
+            internalError(obj.getLineNum(), "internal error: variable table for method '" + currMethodName + "' was not found");
         }
         if (mTable == null) {
             this.currType = unknownType();
@@ -923,7 +938,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+            semanticError(DiagnosticCodes.SEM_UNKNOWN_VARIABLE, "undefined array: " + obj.getArrayName(),
                     obj.getLineNum(), obj.getSpan(), "unknown array",
                     "the name is not declared in the current method scope", null);
         }
@@ -943,7 +958,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getIndex());
         if (this.currType.getKind() != TypeKind.INT) {
-            typeError("SEM-TYPE-INDEX", "int", typeName(this.currType), expressionName(obj.getIndex()),
+            typeError(DiagnosticCodes.TYPE_INDEX, "int", typeName(this.currType), expressionName(obj.getIndex()),
                     obj.getIndex().getLineNum(), obj.getIndex().getSpan(), "array index", null);
         }
         // 设置元素类型
@@ -955,13 +970,13 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Expr.ArrayLength obj) {
         MethodVarTable mTable = this.methodVarTable.get(currMethodName);
         if (mTable == null) {
-            error(obj.getLineNum(), "内部错误: 方法 '" + currMethodName + "' 的变量表未找到");
+            internalError(obj.getLineNum(), "internal error: variable table for method '" + currMethodName + "' was not found");
             this.currType = unknownType();
             return;
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+            semanticError(DiagnosticCodes.SEM_UNKNOWN_VARIABLE, "undefined array: " + obj.getArrayName(),
                     obj.getLineNum(), obj.getSpan(), "unknown array",
                     "the name is not declared in the current method scope", null);
         }
@@ -983,13 +998,13 @@ public class SemanticVisitor implements ISemanticVisitor {
         // 检查数组是否已声明
         MethodVarTable mTable = this.methodVarTable.get(currMethodName);
         if (mTable == null) {
-            error(obj.getLineNum(), "内部错误: 方法 '" + currMethodName + "' 的变量表未找到");
+            internalError(obj.getLineNum(), "internal error: variable table for method '" + currMethodName + "' was not found");
             this.currType = unknownType();
             return;
         }
         Ast.Type.T arrayType = mTable.get(obj.getArrayName());
         if (arrayType == null) {
-            semanticError("SEM-UNKNOWN-VARIABLE", "undefined array: " + obj.getArrayName(),
+            semanticError(DiagnosticCodes.SEM_UNKNOWN_VARIABLE, "undefined array: " + obj.getArrayName(),
                     obj.getLineNum(), obj.getSpan(), "unknown array",
                     "the name is not declared in the current method scope", null);
             this.currType = unknownType();
@@ -1007,7 +1022,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         // 检查下标类型
         this.visit(obj.getIndex());
         if (this.currType.getKind() != TypeKind.INT) {
-            typeError("SEM-TYPE-INDEX", "int", typeName(this.currType), expressionName(obj.getIndex()),
+            typeError(DiagnosticCodes.TYPE_INDEX, "int", typeName(this.currType), expressionName(obj.getIndex()),
                     obj.getIndex().getLineNum(), obj.getIndex().getSpan(), "array index", null);
         }
         // 检查赋值类型

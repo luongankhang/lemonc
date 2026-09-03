@@ -92,16 +92,16 @@ public class Parser {
 
 	private void expected(String s) {
 		String suggestion = isInsertableToken(s) ? s : null;
-		throw diagnosticException("PARSE001", "syntax error: expected '" + s
+		throw diagnosticException(site.ilemon.diagnostic.DiagnosticCodes.PARSE_EXPECTED_TOKEN, "syntax error: expected '" + s
 				+ "', but found '" + look.lexeme + "'", suggestion);
 	}
 
 	private void error(String message) {
-		throw diagnosticException("PARSE002", message + "; current token is '" + look.lexeme + "'");
+		throw diagnosticException(site.ilemon.diagnostic.DiagnosticCodes.PARSE_INVALID_CONSTRUCT, message + "; current token is '" + look.lexeme + "'");
 	}
 
 	private void error(String message, String suggestion) {
-		throw diagnosticException("PARSE002", message + "; current token is '" + look.lexeme + "'", suggestion);
+		throw diagnosticException(site.ilemon.diagnostic.DiagnosticCodes.PARSE_INVALID_CONSTRUCT, message + "; current token is '" + look.lexeme + "'", suggestion);
 	}
 
 	private ParseException diagnosticException(String code, String message) {
@@ -811,7 +811,7 @@ public class Parser {
 			return expr;
 		}
 		else{
-			throw diagnosticException("PARSE003", String.format(
+			throw diagnosticException(site.ilemon.diagnostic.DiagnosticCodes.PARSE_INVALID_EXPRESSION, String.format(
 				"syntax error: expected an identifier, expression, number, or string, but found '%s'",
 				look.lexeme));
 		}

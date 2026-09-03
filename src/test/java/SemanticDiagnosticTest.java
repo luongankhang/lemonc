@@ -21,8 +21,8 @@ public class SemanticDiagnosticTest {
 
         List<Diagnostic> diagnostics = semantic.getDiagnostics();
         assertEquals(2, diagnostics.size());
-        assertEquals("SEM-UNKNOWN-VARIABLE", diagnostics.get(0).code());
-        assertEquals("SEM-UNKNOWN-FUNCTION", diagnostics.get(1).code());
+        assertEquals("E2001", diagnostics.get(0).code());
+        assertEquals("E2002", diagnostics.get(1).code());
         assertEquals(1, diagnostics.get(0).primarySpan().getStartLine());
         assertEquals(1, diagnostics.get(1).primarySpan().getStartLine());
         assertNotNull(diagnostics.get(0).primaryLabel());
@@ -36,7 +36,7 @@ public class SemanticDiagnosticTest {
         SemanticVisitor semantic = analyze("Duplicate", "class Duplicate { void main() { int x; int x; } }\n", false);
 
         Diagnostic diagnostic = semantic.getDiagnostics().get(0);
-        assertEquals("SEM-DUPLICATE-DECLARATION", diagnostic.code());
+        assertEquals("E2003", diagnostic.code());
         assertEquals("duplicate declaration", diagnostic.primaryLabel());
         assertEquals(1, diagnostic.primarySpan().getStartLine());
     }
@@ -47,7 +47,7 @@ public class SemanticDiagnosticTest {
                 "class InvalidUse { void foo() {} void main() { int x; x = foo(); } }\n", false);
 
         Diagnostic diagnostic = semantic.getDiagnostics().get(0);
-        assertEquals("SEM-INVALID-SYMBOL-USAGE", diagnostic.code());
+        assertEquals("E2004", diagnostic.code());
         assertEquals("void function used as value", diagnostic.primaryLabel());
         assertEquals(1, diagnostic.primarySpan().getStartLine());
     }

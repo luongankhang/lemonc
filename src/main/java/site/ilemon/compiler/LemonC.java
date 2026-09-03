@@ -7,6 +7,7 @@ import site.ilemon.codegen.ast.Label;
 import site.ilemon.exception.CompilerException;
 import site.ilemon.exception.ParseException;
 import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticRenderer;
 import site.ilemon.lexer.Lexer;
 import site.ilemon.lexer.Token;
 import site.ilemon.optimizer.AstOptimizer;
@@ -63,7 +64,7 @@ public class LemonC {
                 program = parser.parse();
             } catch (ParseException e) {
                 for (Diagnostic diagnostic : parser.getDiagnostics()) {
-                    err.println(formatDiagnostic(diagnostic));
+                    err.println(new DiagnosticRenderer((file, line) -> lexer.getSourceLine(line)).render(diagnostic));
                 }
                 return 1;
             }
@@ -112,62 +113,8 @@ public class LemonC {
 
     private static void printSemanticDiagnostics(SemanticVisitor semantic, Lexer lexer, PrintStream err) {
         for (Diagnostic diagnostic : semantic.getDiagnostics()) {
-            err.println(formatDiagnostic(diagnostic));
-            if (diagnostic.primarySpan() != null) {
-                printSourcePointer(lexer.getSourceLine(diagnostic.primarySpan().getStartLine()),
-                        diagnostic.primarySpan().getStartColumn(), err);
-            }
+            err.println(new DiagnosticRenderer((file, line) -> lexer.getSourceLine(line)).render(diagnostic));
         }
-    }
-
-    private static String formatDiagnostic(Diagnostic diagnostic) {
-        String location = diagnostic.primarySpan() == null ? "" : " at " + diagnostic.primarySpan();
-        StringBuilder result = new StringBuilder(diagnostic.severity().name().toLowerCase())
-                .append('[').append(diagnostic.code()).append(']').append(location)
-                .append(": ").append(diagnostic.message());
-        if (diagnostic.typeContext() != null) {
-            var type = diagnostic.typeContext();
-            result.append(" (expected ").append(type.expectedType())
-                    .append(", actual ").append(type.actualType())
-                    .append(", expression ").append(type.expression())
-                    .append(", context ").append(type.context()).append(')');
-        }
-        for (String note : diagnostic.notes()) {
-            result.append(System.lineSeparator()).append("note: ").append(note);
-        }
-        for (var suggestion : diagnostic.suggestions()) {
-            result.append(System.lineSeparator()).append("help: ").append(suggestion.message())
-                    .append(" (replace with '").append(suggestion.replacement()).append("')");
-        }
-        return result.toString();
-    }
-
-    private static void printSourcePointer(String sourceLine, PrintStream err) {
-        if (sourceLine == null || sourceLine.isEmpty()) {
-            return;
-        }
-        printSourcePointer(sourceLine, firstNonWhitespaceColumn(sourceLine), err);
-    }
-
-    private static void printSourcePointer(String sourceLine, int column, PrintStream err) {
-        if (sourceLine == null || sourceLine.isEmpty()) {
-            return;
-        }
-        err.println("    " + sourceLine);
-        err.print("    ");
-        for (int i = 1; i < column; i++) {
-            err.print(' ');
-        }
-        err.println('^');
-    }
-
-    private static int firstNonWhitespaceColumn(String sourceLine) {
-        for (int i = 0; i < sourceLine.length(); i++) {
-            if (!Character.isWhitespace(sourceLine.charAt(i))) {
-                return i + 1;
-            }
-        }
-        return 1;
     }
 
     private static void assembleWithJasmin(File outputDir, File ilFile, PrintStream out, PrintStream err, boolean verbose) {

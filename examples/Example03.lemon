@@ -1,5 +1,5 @@
 class Example03{
-	// 程序入口:打印九九乘法表
+	// :
 	void main(){
 		int k;
 		int t;

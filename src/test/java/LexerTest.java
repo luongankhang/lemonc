@@ -9,19 +9,19 @@ import java.io.IOException;
 import static org.junit.Assert.*;
 
 /**
- * 词法分析器测试用例
- * 测试状态机的各个状态转移路径
+ * Lexer test cases
+ * Test various state transition paths of the state machine
  */
 public class LexerTest {
 
-    // ==================== 关键字测试 ====================
+    // ==================== Keyword tests ====================
     
     @Test
     public void testKeywords() throws IOException {
         Lexer lexer = new Lexer(new File("examples/Cal.lemon"));
         lexer.lexicalAnalysis();
         
-        // 验证能识别 class 关键字
+        // Verify can recognize class keyword
         Token first = lexer.next();
         assertEquals(TokenKind.Class, first.kind);
         assertEquals("class", first.lexeme);
@@ -32,7 +32,7 @@ public class LexerTest {
         Lexer lexer = new Lexer(new File("examples/FloatTest01.lemon"));
         lexer.lexicalAnalysis();
         
-        // 检查tokens中包含各种关键字
+        // Check tokens contain various keywords
         boolean hasClass = false, hasVoid = false, hasFloat = false, hasReturn = false;
         for (Token t : lexer.tokens) {
             if (t.kind == TokenKind.Class) hasClass = true;
@@ -40,20 +40,20 @@ public class LexerTest {
             if (t.kind == TokenKind.Float) hasFloat = true;
             if (t.kind == TokenKind.Return) hasReturn = true;
         }
-        assertTrue("应识别class关键字", hasClass);
-        assertTrue("应识别void关键字", hasVoid);
-        assertTrue("应识别float关键字", hasFloat);
-        assertTrue("应识别return关键字", hasReturn);
+        assertTrue("Should recognize class keyword", hasClass);
+        assertTrue("Should recognize void keyword", hasVoid);
+        assertTrue("Should recognize float keyword", hasFloat);
+        assertTrue("Should recognize return keyword", hasReturn);
     }
 
-    // ==================== 标识符测试 ====================
+    // ==================== Identifier tests ====================
     
     @Test
     public void testIdentifier() throws IOException {
         Lexer lexer = new Lexer(new File("examples/Cal.lemon"));
         lexer.lexicalAnalysis();
         
-        // 查找标识符
+        // Find identifier
         boolean hasId = false;
         for (Token t : lexer.tokens) {
             if (t.kind == TokenKind.Id) {
@@ -61,10 +61,10 @@ public class LexerTest {
                 break;
             }
         }
-        assertTrue("应能识别标识符", hasId);
+        assertTrue("Should be able to recognize identifier", hasId);
     }
 
-    // ==================== 数字测试 ====================
+    // ==================== Number tests ====================
     
     @Test
     public void testIntegerNumber() throws IOException {
@@ -78,7 +78,7 @@ public class LexerTest {
                 break;
             }
         }
-        assertTrue("应能识别整数", hasNum);
+        assertTrue("Should be able to recognize integer", hasNum);
     }
 
     @Test
@@ -90,19 +90,19 @@ public class LexerTest {
         for (Token t : lexer.tokens) {
             if (t.kind == TokenKind.FloatLiteral) {
                 hasDNum = true;
-                // 验证浮点数格式
-                assertTrue("浮点数应包含小数点", t.lexeme.contains("."));
+                // Verify float format
+                assertTrue("Float number should contain decimal point", t.lexeme.contains("."));
                 break;
             }
         }
-        assertTrue("应能识别浮点数", hasDNum);
+        assertTrue("Should be able to recognize float number", hasDNum);
     }
 
-    // ==================== 运算符测试 ====================
+    // ==================== Operator tests ====================
     
     @Test
     public void testArithmeticOperators() throws IOException {
-        // 使用FloatTest01，它包含所有四则运算
+        // Use FloatTest01, which contains all four arithmetic operations
         Lexer lexer = new Lexer(new File("examples/FloatTest01.lemon"));
         lexer.lexicalAnalysis();
         
@@ -113,10 +113,10 @@ public class LexerTest {
             if (t.kind == TokenKind.Mul) hasMul = true;
             if (t.kind == TokenKind.Div) hasDiv = true;
         }
-        assertTrue("应识别加法运算符", hasAdd);
-        assertTrue("应识别减法运算符", hasSub);
-        assertTrue("应识别乘法运算符", hasMul);
-        assertTrue("应识别除法运算符", hasDiv);
+        assertTrue("Should recognize addition operator", hasAdd);
+        assertTrue("Should recognize subtraction operator", hasSub);
+        assertTrue("Should recognize multiplication operator", hasMul);
+        assertTrue("Should recognize division operator", hasDiv);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class LexerTest {
                 break;
             }
         }
-        assertTrue("应能识别比较运算符", hasComparison);
+        assertTrue("Should be able to recognize comparison operator", hasComparison);
     }
 
     @Test
@@ -148,11 +148,11 @@ public class LexerTest {
                 break;
             }
         }
-        // 逻辑运算符可能不在所有文件中
-        // assertTrue("应能识别逻辑运算符", hasLogical);
+        // Logical operators might not be in all files
+        // assertTrue("Should be able to recognize logical operators", hasLogical);
     }
 
-    // ==================== 界符测试 ====================
+    // ==================== Delimiter tests ====================
     
     @Test
     public void testDelimiters() throws IOException {
@@ -171,14 +171,14 @@ public class LexerTest {
             if (t.kind == TokenKind.Semicolon) hasSemicolon = true;
         }
         
-        assertTrue("应识别左花括号", hasLbrace);
-        assertTrue("应识别右花括号", hasRbrace);
-        assertTrue("应识别左圆括号", hasLparen);
-        assertTrue("应识别右圆括号", hasRparen);
-        assertTrue("应识别分号", hasSemicolon);
+        assertTrue("Should recognize left brace", hasLbrace);
+        assertTrue("Should recognize right brace", hasRbrace);
+        assertTrue("Should recognize left parenthesis", hasLparen);
+        assertTrue("Should recognize right parenthesis", hasRparen);
+        assertTrue("Should recognize semicolon", hasSemicolon);
     }
 
-    // ==================== 字符串测试 ====================
+    // ==================== String literal tests ====================
     
     @Test
     public void testStringLiteral() throws IOException {
@@ -192,56 +192,56 @@ public class LexerTest {
                 break;
             }
         }
-        assertTrue("应能识别字符串字面量", hasString);
+        assertTrue("Should be able to recognize string literal", hasString);
     }
 
-    // ==================== 注释测试 ====================
+    // ==================== Comment tests ====================
     
     @Test
     public void testCommentIgnored() throws IOException {
         Lexer lexer = new Lexer(new File("examples/FloatTest01.lemon"));
         lexer.lexicalAnalysis();
         
-        // 注释应该被忽略，不应出现在tokens中
+        // Comments should be ignored and not appear in tokens
         for (Token t : lexer.tokens) {
-            assertFalse("注释内容不应出现在token中", 
-                t.lexeme.contains("测试") || t.lexeme.contains("浮点型"));
+            assertFalse("Comment content should not appear in tokens", 
+                t.lexeme.contains("This is a comment"));
         }
     }
 
-    // ==================== 行号测试 ====================
+    // ==================== Line number tests ====================
     
     @Test
     public void testLineNumber() throws IOException {
         Lexer lexer = new Lexer(new File("examples/Cal.lemon"));
         lexer.lexicalAnalysis();
         
-        // 第一个token应该在第1行或更后
+        // The first token should be on line 1 or later
         Token first = lexer.next();
-        assertTrue("行号应大于0", first.lineNumber >= 1);
+        assertTrue("Line number should be greater than 0", first.lineNumber >= 1);
     }
 
-    // ==================== EOF测试 ====================
+    // ==================== EOF tests ====================
     
     @Test
     public void testEOF() throws IOException {
         Lexer lexer = new Lexer(new File("examples/Cal.lemon"));
         lexer.lexicalAnalysis();
         
-        // 最后一个token应该是EOF
+        // The last token should be EOF
         Token last = lexer.tokens.get(lexer.tokens.size() - 1);
-        assertEquals("最后一个token应为EOF", TokenKind.EOF, last.kind);
+        assertEquals("The last token should be EOF", TokenKind.EOF, last.kind);
     }
 
-    // ==================== 综合测试 ====================
+    // ==================== Comprehensive tests ====================
     
     @Test
     public void testCompleteFile() throws IOException {
         Lexer lexer = new Lexer(new File("examples/FloatTest01.lemon"));
         lexer.lexicalAnalysis();
         
-        // 验证token数量合理
-        assertTrue("应产生多个token", lexer.tokens.size() > 10);
+        // Verify token count is reasonable
+        assertTrue("Should generate multiple tokens", lexer.tokens.size() > 10);
         assertEquals(TokenKind.Class, lexer.tokens.get(0).kind);
         assertEquals(TokenKind.EOF, lexer.tokens.get(lexer.tokens.size() - 1).kind);
     }
@@ -256,7 +256,7 @@ public class LexerTest {
             if (t.kind == TokenKind.If) hasIf = true;
             if (t.kind == TokenKind.Else) hasElse = true;
         }
-        assertTrue("应识别if关键字", hasIf);
+        assertTrue("Should recognize if keyword", hasIf);
     }
 
     @Test
@@ -271,7 +271,7 @@ public class LexerTest {
                 break;
             }
         }
-        assertTrue("应识别while关键字", hasWhile);
+        assertTrue("Should recognize while keyword", hasWhile);
     }
 
     @Test
@@ -279,17 +279,17 @@ public class LexerTest {
         Lexer lexer = new Lexer(new File("examples/SimpleMethodCall.lemon"));
         lexer.lexicalAnalysis();
         
-        // 方法调用应该有标识符和括号
+        // Method call should have identifier and parentheses
         boolean hasId = false, hasLparen = false;
         for (Token t : lexer.tokens) {
             if (t.kind == TokenKind.Id) hasId = true;
             if (t.kind == TokenKind.Lparen) hasLparen = true;
         }
-        assertTrue("应有标识符", hasId);
-        assertTrue("应有左括号", hasLparen);
+        assertTrue("Should have identifier", hasId);
+        assertTrue("Should have left parenthesis", hasLparen);
     }
 
-    // ==================== 原有测试保留 ====================
+    // ==================== Keep original tests ====================
     
     @Test
     public void testCal() throws IOException {
@@ -300,3 +300,4 @@ public class LexerTest {
         assertEquals(TokenKind.EOF, lexer.tokens.get(lexer.tokens.size() - 1).kind);
     }
 }
+

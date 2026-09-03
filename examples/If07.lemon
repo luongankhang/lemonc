@@ -1,4 +1,4 @@
-// 测试Not
+// Not
 class If07{
 	void main(){
         int a;

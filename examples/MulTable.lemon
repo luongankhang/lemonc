@@ -1,4 +1,4 @@
-// 打印九九乘法表
+// 
 class MulTable{
 	void main(){
 		int k;

@@ -1,4 +1,4 @@
-// 测试：If条件表达式中数字，ID比较
+// IfID
 class If02{
 	void main(){
         int a;

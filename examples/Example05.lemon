@@ -3,7 +3,7 @@ class Example05{
 		int t;
 		t = showMulTable();
 	}	
-	// 打印九九乘法表
+	// 
 	int showMulTable(){
 		int k;
 		k = 1;

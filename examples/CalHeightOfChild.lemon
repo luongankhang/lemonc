@@ -1,4 +1,4 @@
-// 计算孩子身高
+// 
 class CalHeightOfChild{
 	void main(){
 		float x;
@@ -9,17 +9,17 @@ class CalHeightOfChild{
 		y = 162.0;
 		b = calBoy(x,y);
 		g = calGirl(x,y);
-		printf("父亲身高：%f,母亲身高：%f,儿子可能的身高：%f\n",x,y,b);
-		printf("父亲身高：%f,母亲身高：%f,女儿可能的身高：%f\n",x,y,g);
+		printf("%f,%f,%f\n",x,y,b);
+		printf("%f,%f,%f\n",x,y,g);
 	}
-	// 计算女儿身高，公式：(父亲身高+母亲身高+13)/2 + 7.5
+	// (++13)/2 + 7.5
 	float calBoy(float f,float m){
 		float rs;
 		rs = (f+m+13.0)/2.0+7.5;
 		return rs;
 		// return 1;
 	}
-	// 计算女儿身高，公式：(父亲身高+母亲身高-13)/2 + 7.5
+	// (+-13)/2 + 7.5
 	float calGirl(float f,float m){
 		return (f+m-13.0)/2.0+7.5;
 	}

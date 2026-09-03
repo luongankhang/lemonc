@@ -1,6 +1,6 @@
 
 
-// 测试：If条件表达式中数字比较
+// If
 class If01{
 	void main(){
 	    int a;

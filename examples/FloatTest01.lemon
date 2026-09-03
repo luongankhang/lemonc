@@ -1,9 +1,9 @@
 
-// 测试
-// 浮点型
+// This is a comment
+// This is a comment
 class FloatTest01{
 
-    // main
+    // This is a comment
 	void main(){
         float num1;
         float num2;
@@ -14,23 +14,23 @@ class FloatTest01{
 	}
 
 
-    // 加法
+    // This is a comment
 	float add(float num1,float num2){
 	    return num1 + num2;
 	}
 
 
-    // 减法
+    // This is a comment
 	float sub(float num1,float num2){
         return num1 - num2;
     }
 
-    // 乘法
+    // This is a comment
     float mul(float num1,float num2){
         return num1 * num2;
     }
 
-    // 除法
+    // This is a comment
     float div(float num1,float num2){
         return num1 / num2;
     }

@@ -1,4 +1,4 @@
-// 测试 double 类型
+//  double 
 class DoubleTest01 {
     void main() {
         double num1;

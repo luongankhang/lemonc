@@ -1,4 +1,4 @@
-// 测试：if条件表达式bool方法调用
+// ifbool
 class If13{
 	void main(){
         int a;

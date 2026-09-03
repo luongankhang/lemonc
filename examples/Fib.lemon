@@ -5,10 +5,10 @@ class Fib{
 		n = 12;
 		k = fib(n);
 		k = fibByIterator(n);
-		printf("递归计算斐波那契数列，一年后总共有%d对兔子\n",k);
-		printf("循环计算斐波那契数列，一年后总共有%d对兔子\n",k);
+		printf("Calculate Fibonacci sequence recursively, total %d pairs of rabbits after one year\n",k);
+		printf("Calculate Fibonacci sequence with loop, total %d pairs of rabbits after one year\n",k);
 	}
-	// 递归计算斐波那契数列
+	// 
 	int fib(int n){
 		int rs;
 		if( n < 3 ){
@@ -19,7 +19,7 @@ class Fib{
 		return rs;
 	}
 	
-	// 循环计算斐波那契数列
+	// 
 	int fibByIterator(int month){
 		int fm;
 		int sm;

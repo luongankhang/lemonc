@@ -11,18 +11,18 @@ import java.util.ArrayList;
 import static org.junit.Assert.*;
 
 /**
- * Parser测试用例
- * 测试递归下降语法分析器
+ * Parser test cases
+ * Test recursive descent parser
  */
 public class ParserTest {
 
-    // ==================== 基础解析测试 ====================
+    // ==================== Basic parsing tests ====================
 
     @Test
     public void testParseBasic() throws IOException {
         Parser parser = createParser("examples/BoolTest01.lemon");
         Ast.Program.T prog = parser.parse();
-        assertNotNull("应成功解析程序", prog);
+        assertNotNull("Should successfully parse program", prog);
     }
 
     @Test
@@ -39,13 +39,13 @@ public class ParserTest {
         assertNotNull(prog);
     }
 
-    // ==================== 比较运算符测试 ====================
+    // ==================== Comparison operators tests ====================
 
     @Test
     public void testCompareOperators() throws IOException {
         Parser parser = createParser("examples/CompareTest.lemon");
         Ast.Program.T prog = parser.parse();
-        assertNotNull("应成功解析包含所有比较运算符的程序", prog);
+        assertNotNull("Should successfully parse program containing all comparison operators", prog);
     }
 
     @Test
@@ -54,9 +54,9 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含GT节点
+        // Verify AST contains GT node
         boolean hasGT = containsExprType(prog, Ast.Expr.GT.class);
-        // If01.lemon 使用了 > 运算符
+        // If01.lemon uses > operator
     }
 
     @Test
@@ -65,9 +65,9 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含LT节点
+        // Verify AST contains LT node
         boolean hasLT = containsExprType(prog, Ast.Expr.LT.class);
-        assertTrue("应包含小于运算符", hasLT);
+        assertTrue("Should contain less than operator", hasLT);
     }
 
     @Test
@@ -76,9 +76,9 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含GET节点 (>=)
+        // Verify AST contains GTE node (>=)
         boolean hasGTE = containsExprType(prog, Ast.Expr.GTE.class);
-        assertTrue("应包含大于等于运算符", hasGTE);
+        assertTrue("Should contain greater than or equal operator", hasGTE);
     }
 
     @Test
@@ -87,9 +87,9 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含LET节点 (<=)
+        // Verify AST contains LTE node (<=)
         boolean hasLTE = containsExprType(prog, Ast.Expr.LTE.class);
-        assertTrue("应包含小于等于运算符", hasLTE);
+        assertTrue("Should contain less than or equal operator", hasLTE);
     }
 
     @Test
@@ -98,9 +98,9 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含EQ节点 (==)
+        // Verify AST contains EQ node (==)
         boolean hasEQ = containsExprType(prog, Ast.Expr.EQ.class);
-        assertTrue("应包含等于运算符", hasEQ);
+        assertTrue("Should contain equal operator", hasEQ);
     }
 
     @Test
@@ -109,12 +109,12 @@ public class ParserTest {
         Ast.Program.T prog = parser.parse();
         assertNotNull(prog);
         
-        // 验证AST中包含NEQ节点 (!=)
+        // Verify AST contains NEQ node (!=)
         boolean hasNEQ = containsExprType(prog, Ast.Expr.NEQ.class);
-        assertTrue("应包含不等于运算符", hasNEQ);
+        assertTrue("Should contain not equal operator", hasNEQ);
     }
 
-    // ==================== 逻辑运算符测试 ====================
+    // ==================== Logical operators tests ====================
 
     @Test
     public void testLogicalAnd() throws IOException {
@@ -123,7 +123,7 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasAnd = containsExprType(prog, Ast.Expr.And.class);
-        assertTrue("应包含逻辑与运算符", hasAnd);
+        assertTrue("Should contain logical AND operator", hasAnd);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasOr = containsExprType(prog, Ast.Expr.Or.class);
-        assertTrue("应包含逻辑或运算符", hasOr);
+        assertTrue("Should contain logical OR operator", hasOr);
     }
 
     @Test
@@ -143,10 +143,10 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasNot = containsExprType(prog, Ast.Expr.Not.class);
-        assertTrue("应包含逻辑非运算符", hasNot);
+        assertTrue("Should contain logical NOT operator", hasNot);
     }
 
-    // ==================== 方法调用测试 ====================
+    // ==================== Method call tests ====================
 
     @Test
     public void testMethodCall() throws IOException {
@@ -155,17 +155,17 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasCall = containsExprType(prog, Ast.Expr.Call.class);
-        assertTrue("应包含方法调用", hasCall);
+        assertTrue("Should contain method call", hasCall);
     }
 
     @Test
     public void testRecursiveCall() throws IOException {
         Parser parser = createParser("examples/Cal.lemon");
         Ast.Program.T prog = parser.parse();
-        assertNotNull("应成功解析递归调用", prog);
+        assertNotNull("Should successfully parse recursive call", prog);
     }
 
-    // ==================== 语句测试 ====================
+    // ==================== Statement tests ====================
 
     @Test
     public void testIfStatement() throws IOException {
@@ -174,7 +174,7 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasIf = containsStmtType(prog, Ast.Stmt.If.class);
-        assertTrue("应包含if语句", hasIf);
+        assertTrue("Should contain if statement", hasIf);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasWhile = containsStmtType(prog, Ast.Stmt.While.class);
-        assertTrue("应包含while语句", hasWhile);
+        assertTrue("Should contain while statement", hasWhile);
     }
 
     @Test
@@ -194,10 +194,10 @@ public class ParserTest {
         assertNotNull(prog);
         
         boolean hasReturn = containsStmtType(prog, Ast.Stmt.Return.class);
-        assertTrue("应包含return语句", hasReturn);
+        assertTrue("Should contain return statement", hasReturn);
     }
 
-    // ==================== 辅助方法 ====================
+    // ==================== Helper methods ====================
 
     private Parser createParser(String filename) throws IOException {
         Lexer lexer = new Lexer(new File(filename));
@@ -205,7 +205,7 @@ public class ParserTest {
     }
 
     /**
-     * 检查AST中是否包含指定类型的表达式
+     * Check if AST contains expression of specified type
      */
     private boolean containsExprType(Ast.Program.T prog, Class<?> exprType) {
         if (prog instanceof Ast.Program.ProgramSingle) {
@@ -256,7 +256,7 @@ public class ParserTest {
         if (expr == null) return false;
         if (exprType.isInstance(expr)) return true;
         
-        // 递归检查子表达式
+        // Recursively check subexpressions
         if (expr instanceof Ast.Expr.And) {
             Ast.Expr.And and = (Ast.Expr.And) expr;
             return containsExprInExpr(and.getLeft(), exprType) || containsExprInExpr(and.getRight(), exprType);
@@ -305,7 +305,7 @@ public class ParserTest {
     }
 
     /**
-     * 检查AST中是否包含指定类型的语句
+     * Check if AST contains statement of specified type
      */
     private boolean containsStmtType(Ast.Program.T prog, Class<?> stmtType) {
         if (prog instanceof Ast.Program.ProgramSingle) {

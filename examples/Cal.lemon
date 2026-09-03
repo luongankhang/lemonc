@@ -4,7 +4,7 @@ class Cal{
 		int n;
 		n = 10;
 		k1 = cal(n);
-		printf("10的阶乘是%d",k1);
+		printf("Factorial of 10 is %d", k1);
 	}
 	
 	int cal(int n){

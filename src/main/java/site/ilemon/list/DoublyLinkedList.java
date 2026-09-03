@@ -2,9 +2,9 @@ package site.ilemon.list;
 
 /**
  * <p>DoublyLinkedList</p>  
- * <p>保存任何数据的双向链表 </p>  
+ * <p>Doubly linked list storing any data </p>  
  * @author yanan  
- * @date 2018年3月15日
+ * @date 2018-03-15
  */
 public class DoublyLinkedList<T> {
     private DNode<T> head,tail;
@@ -26,8 +26,8 @@ public class DoublyLinkedList<T> {
 		return size==0?true:false;
 	}
 	/**
-	 * 将数据添加到链表头部
-	 * @param data 待添加的数据
+	 * Add data to the head of the linked list
+	 * @param data Data to be added
 	 */
 	public void addToHead(T data){
 		if(isEmpty()){
@@ -42,8 +42,8 @@ public class DoublyLinkedList<T> {
 	}
 	
 	/**
-	 * 将数据添加到链表尾部
-	 * @param data 待添加的数据
+	 * Add data to the tail of the linked list
+	 * @param data Data to be added
 	 */
 	public void addToTail(T data){
 		if(isEmpty()){
@@ -58,8 +58,8 @@ public class DoublyLinkedList<T> {
 	}
 	
 	/**
-	 * 将另一个链表的所有元素追加到本链表尾部
-	 * @param list 待追加的链表
+	 * Append all elements of another linked list to the tail of this linked list
+	 * @param list Linked list to be appended
 	 */
 	public void addAll(DoublyLinkedList<T> list){
 		if (list == null || list.isEmpty()) return;
@@ -69,7 +69,7 @@ public class DoublyLinkedList<T> {
 	}
 
 	/**
-	 * 从链表头部删除数据并返回改数据，如果链表为空，则返回null。
+	 * Delete data from the head of the linked list and return it. If the list is empty, return null.
 	 */
 	public T deleteFromHead(){
 		if(!isEmpty()){
@@ -87,8 +87,8 @@ public class DoublyLinkedList<T> {
 	}
 	
 	/**
-	 * 将数据添加到链表正中间(3.10习题第16题)
-	 * @param data 待添加的数据
+	 * Add data to the middle of the linked list (Exercise 16 of 3.10)
+	 * @param data Data to be added
 	 */
 	public void addToMiddle(T data){
 		DNode<T> newNode = new DNode<T>(data, null, null);
@@ -110,7 +110,7 @@ public class DoublyLinkedList<T> {
 	}
 	
 	/**
-	 * 从链表尾部删除数据并返回改数据，如果链表为空，则返回null。
+	 * Delete data from the tail of the linked list and return it. If the list is empty, return null.
 	 */
 	public T deleteFromTail(){
 		if(!isEmpty()){
@@ -128,8 +128,8 @@ public class DoublyLinkedList<T> {
 	}
 	
 	/**
-	 * 从指定位置删除链表中的数据
-	 * @param index 数据位于链表中的索引
+	 * Delete data at the specified position from the linked list
+	 * @param index Index of the data in the linked list
 	 */
 	public void deleteNode(int index){
 		rangeCheck(index);
@@ -153,9 +153,9 @@ public class DoublyLinkedList<T> {
 	
 	
 	/**
-	 * 获取链表指定位置的数据
-	 * @param i 索引
-	 * @return int 数据
+	 * Get data at the specified position in the linked list
+	 * @param i Index
+	 * @return int Data
 	 */
 	public T get(int i){
 		rangeCheck(i);

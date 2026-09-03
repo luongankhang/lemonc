@@ -4,7 +4,7 @@ package site.ilemon.visitor;
 import site.ilemon.ast.Ast;
 
 /**
- * 语义分析访问者接口
+ * Semantic analysis visitor interface
  * @author andy
  *
  */

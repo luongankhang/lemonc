@@ -1,4 +1,4 @@
-// 简单的方法调用
+// 
 class SimpleMethodCallTwo{
 	void main(){
 		int x;

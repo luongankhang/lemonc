@@ -1,16 +1,16 @@
-// 测试 float 和 double 数组
+//  float  double 
 class ArrayTest02 {
     void main() {
         float farr[3];
         double darr[3];
         int i;
         
-        // float 数组
+        // float 
         farr[0] = 1.1;
         farr[1] = 2.2;
         farr[2] = 3.3;
         
-        // double 数组
+        // double 
         darr[0] = 10.01;
         darr[1] = 20.02;
         darr[2] = 30.03;

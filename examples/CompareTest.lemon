@@ -1,4 +1,4 @@
-// 测试所有比较运算符: > < >= <= == !=
+// : > < >= <= == !=
 class CompareTest{
     void main(){
         int a;
@@ -7,7 +7,7 @@ class CompareTest{
         a = 10;
         b = 20;
 
-        // 测试 > (大于)
+        //  > ()
         if( a > b ){
             result = 1;
         }else{
@@ -15,7 +15,7 @@ class CompareTest{
         }
         printf("10 > 20 = %d\n", result); // 0
 
-        // 测试 < (小于)
+        //  < ()
         if( a < b ){
             result = 1;
         }else{
@@ -23,7 +23,7 @@ class CompareTest{
         }
         printf("10 < 20 = %d\n", result); // 1
 
-        // 测试 >= (大于等于)
+        //  >= ()
         if( a >= b ){
             result = 1;
         }else{
@@ -38,7 +38,7 @@ class CompareTest{
         }
         printf("20 >= 10 = %d\n", result); // 1
 
-        // 测试 <= (小于等于)
+        //  <= ()
         if( a <= b ){
             result = 1;
         }else{
@@ -53,7 +53,7 @@ class CompareTest{
         }
         printf("20 <= 10 = %d\n", result); // 0
 
-        // 测试 == (等于)
+        //  == ()
         if( a == b ){
             result = 1;
         }else{
@@ -68,7 +68,7 @@ class CompareTest{
         }
         printf("10 == 10 = %d\n", result); // 1
 
-        // 测试 != (不等于)
+        //  != ()
         if( a != b ){
             result = 1;
         }else{

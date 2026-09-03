@@ -1,4 +1,4 @@
-// 测试：bool 变量赋值（true,false,方法调用）
+// bool true,false,
 class BoolTest05{
 	void main(){
 	    bool a;

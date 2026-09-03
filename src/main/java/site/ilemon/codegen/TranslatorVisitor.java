@@ -13,18 +13,18 @@ import java.util.List;
 import site.ilemon.exception.CompilerException;
 
 /**
- * IR 翻译 Visitor — 将前端 AST 翻译为后端 Jasmin IL 指令序列。
+ * IR Translation Visitor  Translates front-end AST to back-end Jasmin IL instruction sequence.
  *
- * <p>遍历 {@link site.ilemon.ast.Ast} 中的前端 AST 节点，生成对应的
- * {@link Ast}（后端 IR）指令序列。翻译过程中：</p>
+ * <p>Traverses the front-end AST nodes in {@link site.ilemon.ast.Ast}, generating corresponding
+ * {@link Ast} (back-end IR) instruction sequences. During translation:</p>
  * <ul>
- *   <li>为每个方法的局部变量分配索引（{@code indexTable}）</li>
- *   <li>将布尔表达式翻译为 if-then-else 的 0/1 赋值形式</li>
- *   <li>生成 JVM 类型相关的 load/store/arithmetic 指令</li>
- *   <li>处理方法调用的 invokestatic 指令生成</li>
+ *   <li>Allocates indices for local variables of each method ({@code indexTable})</li>
+ *   <li>Translates boolean expressions to 0/1 assignment forms of if-then-else</li>
+ *   <li>Generates load/store/arithmetic instructions related to JVM types</li>
+ *   <li>Processes invokestatic instruction generation for method calls</li>
  * </ul>
  *
- * <p>翻译结果保存在 {@link #prog} 字段中，供 {@link ByteCodeGenerator} 写入 {@code .il} 文件。</p>
+ * <p>The translation result is saved in the {@link #prog} field, for {@link ByteCodeGenerator} to write to {@code .il} files.</p>
  *
  * @author andy
  * @see ByteCodeGenerator
@@ -48,10 +48,10 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
 
     private String classId;
-    // 变量索引
+    // Variable index
     private int index;
 
-    // 变量表[key:变量名称,value:变量索引]
+    // Variable table [key: variable name, value: variable index]
     private HashMap<String, Integer> indexTable;
     private Ast.Type.T type;
     private Ast.Type.T currentMethodReturnType;
@@ -606,7 +606,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         emit(new Ast.Stmt.Goto(nextLabel));
         // gen(E.false':')
         emit(new Ast.Stmt.LabelJ(falseLabel));
-        // S2.code (可能为null)
+        // S2.code (null)
         if (obj.getElseStmt() != null) {
             obj.getElseStmt().getBreakList().addAll(obj.getBreakList());
             obj.getElseStmt().getContinueList().addAll(obj.getContinueList());
@@ -655,9 +655,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     /**
-     * 处理方法调用中的参数是表达式的情况
-     * @param obj 方法调用
-     * @param expr 参数
+     * Process cases where method call arguments are expressions
+     * @param obj method call
+     * @param expr parameter
      */
     private void processExpression(Expr.T expr) {
         if( checkWhetherBoolExpression(expr) || ( expr instanceof Expr.Call && ((Expr.Call)expr).getReturnType() instanceof Type.Bool) ){
@@ -674,7 +674,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if( checkWhetherBoolExpression(obj.getExpr()) || ( obj.getExpr() instanceof Expr.Call && ((Expr.Call)obj.getExpr()).getReturnType() instanceof Type.Bool) ){
             emitBooleanValue(obj.getExpr());
         } else if (obj.getId().getType() instanceof Type.Double && obj.getExpr() instanceof Expr.Number) {
-            // 当float字面量赋值给double变量时，直接生成double常量
+            // When a float literal is assigned to a double variable, directly generate a double constant
             Expr.Number num = (Expr.Number) obj.getExpr();
             emit(new Ast.Stmt.Ldc(java.lang.Double.parseDouble(num.getValue().toString())));
             this.type = new Ast.Type.Double();
@@ -683,7 +683,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         }
         emitWideningConversion(toCodegenType(obj.getId().getType()));
 
-        // 生成 xstore index
+        // Generate xstore index
         if (obj.getId().getType() instanceof Type.Int || obj.getId().getType() instanceof Type.Byte
                 || obj.getId().getType() instanceof Type.Bool)
             emit(new Ast.Stmt.Istore(index));
@@ -719,7 +719,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
             this.type = toCodegenType(obj.getType());
             emit(new Ast.Stmt.Aload(index));
         }
-        // 如果ID是bool类型
+        // If ID is bool type
         else if( obj.getType() instanceof Type.Bool ){
             emit(new Ast.Stmt.Iload(lookupIndex(obj.getId())));
             this.type = new Ast.Type.Bool();
@@ -913,26 +913,26 @@ public class TranslatorVisitor implements ISemanticVisitor {
     public void visit(Method.MethodSingle obj) {
         this.index = 0;
         this.indexTable = new HashMap<>();
-        this.stmts = new ArrayList<>(); // 先初始化stmts
+        this.stmts = new ArrayList<>(); // stmts
         this.visit(obj.getRetType());
         Ast.Type.T returnType = this.type;
         this.currentMethodReturnType = returnType;
 
-        // 遍历入参
+        // Traverse input parameters
         List<Ast.Declare.DeclareSingle> formals = new ArrayList<>();
         for (int i = 0; i < obj.getFormals().size(); i++) {
             registerFormal((Declare.DeclareSingle) obj.getFormals().get(i));
             formals.add(this.dec);
         }
 
-        // 遍历局部变量（这里会生成数组初始化代码）
+        // Traverse local variables (array initialization code will be generated here)
         List<Ast.Declare.DeclareSingle> locals = new ArrayList<>();
         for (int i = 0; i < obj.getLocals().size(); i++) {
             translateLocalDeclare((Declare.DeclareSingle) obj.getLocals().get(i));
             locals.add(this.dec);
         }
 
-        // 遍历stmts
+        // Traverse stmts
         for (int i = 0; i < obj.getStms().size(); i++) {
             this.visit(obj.getStms().get(i));
         }
@@ -1025,7 +1025,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     /**
      *
      * @param expr
-     * @return 返回true,如果
+     * @return returns true, if
      */
     private boolean checkWhetherBoolExpression(Expr.T expr){
         return expr instanceof Expr.GT || expr instanceof Expr.LT
@@ -1147,7 +1147,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         }
     }
 
-    // ========== 数组相关的 visit 方法 ==========
+    // ========== Array related visit methods ==========
 
     @Override
     public void visit(Type.IntArray obj) {
@@ -1186,12 +1186,12 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Expr.ArrayAccess obj) {
-        // 加载数组引用
+        // Load array reference
         int arrayIndex = lookupIndex(obj.getArrayName());
         emit(new Ast.Stmt.Aload(arrayIndex));
-        // 计算下标
+        // Calculate index
         this.visit(obj.getIndex());
-        // 根据元素类型生成对应的加载指令
+        // Generate corresponding load instruction based on element type
         if (obj.getElementType() instanceof Type.Int) {
             emit(new Ast.Stmt.Iaload());
             this.type = new Ast.Type.Int();
@@ -1209,7 +1209,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
             this.type = new Ast.Type.Double();
         } else if (obj.getElementType() instanceof Type.Bool) {
             emit(new Ast.Stmt.Baload());
-            this.type = new Ast.Type.Int(); // bool在JVM中用int表示
+            this.type = new Ast.Type.Int(); // bool is represented by int in JVM
         } else if (obj.getElementType() instanceof Type.Str) {
             emit(new Ast.Stmt.Aaload());
             this.type = new Ast.Type.Str();
@@ -1226,14 +1226,14 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Stmt.ArrayAssign obj) {
-        // 加载数组引用
+        // Load array reference
         int arrayIndex = lookupIndex(obj.getArrayName());
         emit(new Ast.Stmt.Aload(arrayIndex));
-        // 计算下标
+        // Calculate index
         this.visit(obj.getIndex());
-        // 计算值
+        // Calculate value
         this.visit(obj.getExpr());
-        // 根据数组元素类型生成存储指令
+        // Generate store instruction based on array element type
         if (obj.getElementType() instanceof Type.Int) {
             emit(new Ast.Stmt.Iastore());
         } else if (obj.getElementType() instanceof Type.Byte) {

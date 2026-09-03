@@ -6,7 +6,7 @@ class IterationDemo{
         while( false ){
             printf("k...1=%d\n",k);
         }
-		// 死循环
+		// 
 		while(
 		    getBool() || !(getBool2()) || !(getBool3(getBool2(),getBool2())) && !(getInt(1) > getInt(10))
 		){

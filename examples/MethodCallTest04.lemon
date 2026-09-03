@@ -25,26 +25,26 @@ class MethodCallTest04{
 
     // false
 	bool cal(float a){
-	    printf("进入cal方法，参数=%f\n",a);
+	    printf("cal=%f\n",a);
 	    return a > 10.0 || true && getIntNum() > 19;
 	}
 
 	int getIntNum(){
 	    int a;
 	    a = 19;
-	    printf("进入getIntNum方法，返回值=%d\n",a);
+	    printf("getIntNum=%d\n",a);
 	    return a;
 	}
 
 	bool getBool(bool b){
-	    //printf("进入getBool方法，参数=%d\n",b);
+	    //printf("getBool=%d\n",b);
 	    return b;
 	}
 
 	float getFloat(){
         float a;
         a = 19.0;
-        printf("进入getFloat方法，返回值=%f\n",a);
+        printf("getFloat=%f\n",a);
         return a;
 	}
 }

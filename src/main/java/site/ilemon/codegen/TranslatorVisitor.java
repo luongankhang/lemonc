@@ -377,6 +377,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return new Ast.Type.FloatArray();
         if (type instanceof Type.DoubleArray) return new Ast.Type.DoubleArray();
         if (type instanceof Type.BoolArray) return new Ast.Type.BoolArray();
+        if (type instanceof Type.StringArray) return new Ast.Type.StringArray();
         throw new CompilerException("[Code Generation] Unsupported type: " + type);
     }
 
@@ -388,7 +389,16 @@ public class TranslatorVisitor implements ISemanticVisitor {
         return type instanceof Type.IntArray
                 || type instanceof Type.FloatArray
                 || type instanceof Type.DoubleArray
-                || type instanceof Type.BoolArray;
+                || type instanceof Type.BoolArray
+                || type instanceof Type.StringArray;
+    }
+
+    private boolean isCodegenArrayType(Ast.Type.T type) {
+        return type != null && (type.getKind() == TypeKind.INT_ARRAY
+                || type.getKind() == TypeKind.FLOAT_ARRAY
+                || type.getKind() == TypeKind.DOUBLE_ARRAY
+                || type.getKind() == TypeKind.BOOL_ARRAY
+                || type.getKind() == TypeKind.STRING_ARRAY);
     }
 
     private Ast.Type.T arrayElementType(Type.T type) {
@@ -396,6 +406,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return new Ast.Type.Float();
         if (type instanceof Type.DoubleArray) return new Ast.Type.Double();
         if (type instanceof Type.BoolArray) return new Ast.Type.Bool();
+        if (type instanceof Type.StringArray) return new Ast.Type.Str();
         throw new CompilerException("[Code Generation] Not an array type: " + type);
     }
 
@@ -404,6 +415,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return ((Type.FloatArray) type).getSize();
         if (type instanceof Type.DoubleArray) return ((Type.DoubleArray) type).getSize();
         if (type instanceof Type.BoolArray) return ((Type.BoolArray) type).getSize();
+        if (type instanceof Type.StringArray) return ((Type.StringArray) type).getSize();
         throw new CompilerException("[Code Generation] Not an array type: " + type);
     }
 
@@ -752,13 +764,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
     @Override
     public void visit(Expr.Str obj) {
         this.type = new Ast.Type.Str();
-        // 字符串值需要用引号包裹，但要避免重复添加
         String value = obj.getValue();
-        // 处理转义字符：将实际的换行符转换回 \n 表示
         value = value.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
         emit(new Ast.Stmt.Ldc("\"" + value + "\""));
-        emit(new Ast.Stmt.Astore(index));
-        index++;
     }
 
     @Override
@@ -902,7 +910,6 @@ public class TranslatorVisitor implements ISemanticVisitor {
             return;
         }
         this.visit(new Expr.Str(text, lineNum));
-        emit(new Ast.Stmt.Aload(index - 1));
         emit(new Ast.Stmt.Printf(new Ast.Type.Str(), text));
     }
 
@@ -984,6 +991,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Freturn());
         else if (this.type.getKind() == TypeKind.DOUBLE)
             emit(new Ast.Stmt.Dreturn());
+        else if (this.type.getKind() == TypeKind.STRING || isCodegenArrayType(this.type))
+            emit(new Ast.Stmt.Areturn());
 
     }
 
@@ -1099,6 +1108,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     @Override
+    public void visit(Type.StringArray obj) {
+        this.type = new Ast.Type.StringArray();
+    }
+
+    @Override
     public void visit(Expr.ArrayAccess obj) {
         // 加载数组引用
         int arrayIndex = lookupIndex(obj.getArrayName());
@@ -1118,6 +1132,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
         } else if (obj.getElementType() instanceof Type.Bool) {
             emit(new Ast.Stmt.Baload());
             this.type = new Ast.Type.Int(); // bool在JVM中用int表示
+        } else if (obj.getElementType() instanceof Type.Str) {
+            emit(new Ast.Stmt.Aaload());
+            this.type = new Ast.Type.Str();
         }
     }
 
@@ -1149,6 +1166,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Dastore());
         } else if (obj.getElementType() instanceof Type.Bool) {
             emit(new Ast.Stmt.Bastore());
+        } else if (obj.getElementType() instanceof Type.Str) {
+            emit(new Ast.Stmt.Aastore());
         }
     }
 }

@@ -36,6 +36,7 @@ public class Lexer {
         KEYWORDS.put("false", TokenKind.False);
         KEYWORDS.put("void", TokenKind.Void);
         KEYWORDS.put("String", TokenKind.String);
+        KEYWORDS.put("string", TokenKind.String);
         KEYWORDS.put("int", TokenKind.Int);
         KEYWORDS.put("bool", TokenKind.Bool);
         KEYWORDS.put("float", TokenKind.Float);

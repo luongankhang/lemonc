@@ -280,10 +280,10 @@ public class ByteCodeGenerator implements Visitor {
 
         if (stmt instanceof Ast.Stmt.Newarray) return deltas(-1, 1);
         if (stmt instanceof Ast.Stmt.Iaload || stmt instanceof Ast.Stmt.Faload
-                || stmt instanceof Ast.Stmt.Baload) return deltas(-2, 1);
+                || stmt instanceof Ast.Stmt.Baload || stmt instanceof Ast.Stmt.Aaload) return deltas(-2, 1);
         if (stmt instanceof Ast.Stmt.Daload) return deltas(-2, 2);
         if (stmt instanceof Ast.Stmt.Iastore || stmt instanceof Ast.Stmt.Fastore
-                || stmt instanceof Ast.Stmt.Bastore) return deltas(-3);
+                || stmt instanceof Ast.Stmt.Bastore || stmt instanceof Ast.Stmt.Aastore) return deltas(-3);
         if (stmt instanceof Ast.Stmt.Dastore) return deltas(-4);
         if (stmt instanceof Ast.Stmt.Arraylength) return deltas(-1, 1);
 
@@ -363,6 +363,7 @@ public class ByteCodeGenerator implements Visitor {
             case FLOAT_ARRAY -> "[F";
             case DOUBLE_ARRAY -> "[D";
             case BOOL_ARRAY -> "[Z";
+            case STRING_ARRAY -> "[Ljava/lang/String;";
             default -> throw new CompilerException("Unsupported JVM type descriptor: " + type);
         };
     }
@@ -717,6 +718,11 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     @Override
+    public void visit(Ast.Type.StringArray obj) {
+
+    }
+
+    @Override
     public void visit(Ast.Type.Bool obj) {
 
     }
@@ -729,9 +735,10 @@ public class ByteCodeGenerator implements Visitor {
             case Ast.Type.Float f -> "float";
             case Ast.Type.Double d -> "double";
             case Ast.Type.Bool b -> "boolean";
+            case Ast.Type.Str stringType -> "java/lang/String";
             default -> "int"; // 默认
         };
-        this.iwriteln("newarray " + type);
+        this.iwriteln(s.elementType instanceof Ast.Type.Str ? "anewarray " + type : "newarray " + type);
     }
 
     public void visit(Ast.Stmt.Iaload s) {
@@ -764,6 +771,14 @@ public class ByteCodeGenerator implements Visitor {
 
     public void visit(Ast.Stmt.Bastore s) {
         this.iwriteln("bastore");
+    }
+
+    public void visit(Ast.Stmt.Aaload s) {
+        this.iwriteln("aaload");
+    }
+
+    public void visit(Ast.Stmt.Aastore s) {
+        this.iwriteln("aastore");
     }
 
     public void visit(Ast.Stmt.Arraylength s) {

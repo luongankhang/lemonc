@@ -216,7 +216,7 @@ public class Parser {
 	private boolean isMethodStart() {
 		return look != null && (look.kind == TokenKind.Void || look.kind == TokenKind.Int
 				|| look.kind == TokenKind.Float || look.kind == TokenKind.Double
-				|| look.kind == TokenKind.Bool);
+				|| look.kind == TokenKind.Bool || look.kind == TokenKind.String);
 	}
 
 	private void synchronizeToMethodBoundary() {
@@ -236,6 +236,11 @@ public class Parser {
 	// <method> -> void | int | double | methodname ( <inputparams> ) {<varDeclares> <stmts> [return <expr>]}
 	private Ast.Method.MethodSingle parseMethod() throws IOException {
 		Ast.Type.T t = parseType();
+		if (look.kind == TokenKind.Lbracket) {
+			match("[");
+			match("]");
+			t = createArrayType(t, -1);
+		}
 		String methodName = look.lexeme;
 		int lineNumber = look.lineNumber;
 		Token nameToken = look;
@@ -340,6 +345,8 @@ public class Parser {
 			return new Ast.Type.DoubleArray(size);
 		} else if (baseType instanceof Ast.Type.Bool) {
 			return new Ast.Type.BoolArray(size);
+		} else if (baseType instanceof Ast.Type.Str) {
+			return new Ast.Type.StringArray(size);
 		}
 		return null;
 	}
@@ -384,7 +391,7 @@ public class Parser {
 	 */
 	private boolean isTypeToken(TokenKind kind) {
 		return kind == TokenKind.Int || kind == TokenKind.Float
-				|| kind == TokenKind.Double || kind == TokenKind.Bool;
+				|| kind == TokenKind.Double || kind == TokenKind.Bool || kind == TokenKind.String;
 	}
 
 
@@ -408,6 +415,10 @@ public class Parser {
 		else if(look.kind == TokenKind.Bool){
 			move();
 			return new Ast.Type.Bool();
+		}
+		else if(look.kind == TokenKind.String){
+			move();
+			return new Ast.Type.Str();
 		}
 		else 
 			error("期望类型关键字 int、float、double、bool 或 void");
@@ -531,6 +542,7 @@ public class Parser {
 			}
 			// 数组赋值: arr[i] = expr;
 			else if( ahead.kind == TokenKind.Lbracket ){
+				Token arrayToken = look;
 				String arrayName = look.lexeme;
 				int lineNum = look.lineNumber;
 				match( new Token(TokenKind.Id) );
@@ -541,6 +553,7 @@ public class Parser {
 				Ast.Expr.T expr = parseExpr();
 				match( new Token(TokenKind.Semicolon) );
 				stmt = new Ast.Stmt.ArrayAssign(arrayName, index, expr, lineNum);
+				stmt.setSpan(tokenSpan(arrayToken));
 			}
 			else{
 				String id = look.lexeme;

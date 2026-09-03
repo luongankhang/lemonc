@@ -171,6 +171,7 @@ public class SemanticVisitor implements ISemanticVisitor {
                 typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
                         expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
                         "array assignment", "arrays cannot be assigned as whole values");
+                return;
             }
             if( !isMatch(this.currType,exprType))
                 typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
@@ -835,7 +836,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         TypeKind kind = type.getKind();
         return kind == TypeKind.INT_ARRAY || kind == TypeKind.FLOAT_ARRAY
-                || kind == TypeKind.DOUBLE_ARRAY || kind == TypeKind.BOOL_ARRAY;
+                || kind == TypeKind.DOUBLE_ARRAY || kind == TypeKind.BOOL_ARRAY
+                || kind == TypeKind.STRING_ARRAY;
     }
 
     /**
@@ -922,6 +924,11 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Type.BoolArray obj) {
+        this.currType = obj;
+    }
+
+    @Override
+    public void visit(Ast.Type.StringArray obj) {
         this.currType = obj;
     }
 
@@ -1028,8 +1035,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         // 检查赋值类型
         this.visit(obj.getExpr());
         if (!isMatch(elementType, this.currType)) {
-            error(obj.getLineNum(), String.format("不能将 %s 类型的表达式赋值给 %s 数组元素",
-                    typeName(this.currType), typeName(elementType)));
+            typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(elementType), typeName(this.currType),
+                    expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "array element assignment", null);
         }
     }
 
@@ -1043,6 +1050,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             return new Ast.Type.Double();
         } else if (arrayType instanceof Ast.Type.BoolArray) {
             return new Ast.Type.Bool();
+        } else if (arrayType instanceof Ast.Type.StringArray) {
+            return new Ast.Type.Str();
         }
         return null;
     }

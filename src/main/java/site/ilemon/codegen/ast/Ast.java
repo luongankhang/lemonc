@@ -163,6 +163,14 @@ public String id;
             @Override
             public String toString() { return "@bool[]"; }
         }
+
+        public static class StringArray extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            @Override
+            public TypeKind getKind() { return TypeKind.STRING_ARRAY; }
+            @Override
+            public String toString() { return "@string[]"; }
+        }
     }
 
 
@@ -575,6 +583,14 @@ public Type.T elementType;
         public static class Bastore extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 }
+
+        public static class Aaload extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+        }
+
+        public static class Aastore extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+        }
 
         // 数组长度: arraylength
         public static class Arraylength extends T {

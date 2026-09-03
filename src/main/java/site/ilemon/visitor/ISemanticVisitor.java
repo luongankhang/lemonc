@@ -48,6 +48,7 @@ public interface ISemanticVisitor {
 	void visit(Ast.Type.FloatArray obj);
 	void visit(Ast.Type.DoubleArray obj);
 	void visit(Ast.Type.BoolArray obj);
+	void visit(Ast.Type.StringArray obj);
 
 	void visit(Ast.Program.T programSingle);
 	void visit(Ast.Declare.T obj);

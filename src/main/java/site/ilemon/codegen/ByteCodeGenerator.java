@@ -355,6 +355,7 @@ public class ByteCodeGenerator implements Visitor {
         }
         return switch (type.getKind()) {
             case INT, BOOL -> "I";
+            case BYTE -> "B";
             case FLOAT -> "F";
             case DOUBLE -> "D";
             case VOID -> "V";
@@ -585,7 +586,7 @@ public class ByteCodeGenerator implements Visitor {
 
     @Override
     public void visit(Ast.Stmt.Printf obj) {
-        if( obj.exprType.getKind() == TypeKind.INT){
+        if( obj.exprType.getKind() == TypeKind.INT || obj.exprType.getKind() == TypeKind.BYTE){
             this.iwriteln("getstatic java/lang/System/out Ljava/io/PrintStream;");
             this.iwriteln("swap");
             this.iwriteln("invokevirtual java/io/PrintStream/print(I)V");
@@ -701,6 +702,11 @@ public class ByteCodeGenerator implements Visitor {
     @Override
     public void visit(Ast.Type.Int obj) {
         this.write("I");
+    }
+
+    @Override
+    public void visit(Ast.Type.Byte obj) {
+        this.write("B");
     }
 
     @Override

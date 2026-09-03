@@ -216,7 +216,7 @@ public class Parser {
 	private boolean isMethodStart() {
 		return look != null && (look.kind == TokenKind.Void || look.kind == TokenKind.Int
 				|| look.kind == TokenKind.Float || look.kind == TokenKind.Double
-				|| look.kind == TokenKind.Bool || look.kind == TokenKind.String);
+				|| look.kind == TokenKind.Bool || look.kind == TokenKind.Byte || look.kind == TokenKind.String);
 	}
 
 	private void synchronizeToMethodBoundary() {
@@ -391,7 +391,7 @@ public class Parser {
 	 */
 	private boolean isTypeToken(TokenKind kind) {
 		return kind == TokenKind.Int || kind == TokenKind.Float
-				|| kind == TokenKind.Double || kind == TokenKind.Bool || kind == TokenKind.String;
+				|| kind == TokenKind.Double || kind == TokenKind.Bool || kind == TokenKind.Byte || kind == TokenKind.String;
 	}
 
 
@@ -416,12 +416,16 @@ public class Parser {
 			move();
 			return new Ast.Type.Bool();
 		}
+		else if(look.kind == TokenKind.Byte){
+			move();
+			return new Ast.Type.Byte();
+		}
 		else if(look.kind == TokenKind.String){
 			move();
 			return new Ast.Type.Str();
 		}
 		else 
-			error("期望类型关键字 int、float、double、bool 或 void");
+			error("expected type keyword int, float, double, bool, byte, string, or void");
 		return null;
 	}
 
@@ -756,7 +760,9 @@ public class Parser {
 			return new Ast.Expr.Sub(new Ast.Expr.Number(new Ast.Type.Int(), 0, lineNumber),
 					operand, lineNumber);
 		}else if(look.kind== Num){
+			Token numberToken = look;
 			expr = new Ast.Expr.Number(new Ast.Type.Int(),look.lexeme,look.lineNumber);
+			expr.setSpan(tokenSpan(numberToken));
 			move();
 			return expr;
 		}else if(look.kind==TokenKind.FloatLiteral){

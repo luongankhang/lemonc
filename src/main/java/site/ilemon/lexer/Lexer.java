@@ -39,6 +39,7 @@ public class Lexer {
         KEYWORDS.put("string", TokenKind.String);
         KEYWORDS.put("int", TokenKind.Int);
         KEYWORDS.put("bool", TokenKind.Bool);
+        KEYWORDS.put("byte", TokenKind.Byte);
         KEYWORDS.put("float", TokenKind.Float);
         KEYWORDS.put("double", TokenKind.Double);
         KEYWORDS.put("if", TokenKind.If);

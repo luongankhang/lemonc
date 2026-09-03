@@ -155,6 +155,11 @@ public class SemanticVisitor implements ISemanticVisitor {
     }
 
     @Override
+    public void visit(Ast.Type.Byte obj) {
+        this.currType = obj;
+    }
+
+    @Override
     public void visit(Ast.Stmt.Assign obj) {
         if(obj.getExpr() instanceof Ast.Expr.T){
             this.visit((Ast.Expr.T)obj.getExpr());
@@ -173,10 +178,14 @@ public class SemanticVisitor implements ISemanticVisitor {
                         "array assignment", "arrays cannot be assigned as whole values");
                 return;
             }
-            if( !isMatch(this.currType,exprType))
-                typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
-                        expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
-                        "assignment to '" + obj.getId().getId() + "'", null);
+            if (!isAssignable(targetType, exprType, obj.getExpr())) {
+                if (!byteRangeErrorIfNeeded(targetType, exprType, obj.getExpr(), obj.getLineNum(), obj.getSpan(),
+                        "assignment to '" + obj.getId().getId() + "'")) {
+                    typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(targetType), typeName(exprType),
+                            expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
+                            "assignment to '" + obj.getId().getId() + "'", null);
+                }
+            }
         }
 
     }
@@ -222,9 +231,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         this.visit(obj.getRight());
         Ast.Type.T rightType = this.currType;
         if (leftType == null || rightType == null
-                || leftType.getKind() != TypeKind.INT
-                || rightType.getKind() != TypeKind.INT) {
-            typeError(DiagnosticCodes.TYPE_OPERATOR, "int", typeName(leftType) + " and " + typeName(rightType),
+                || !isIntegerLike(leftType) || !isIntegerLike(rightType)) {
+            typeError(DiagnosticCodes.TYPE_OPERATOR, "int or byte", typeName(leftType) + " and " + typeName(rightType),
                     expressionName(obj), obj.getLineNum(), obj.getSpan(), "operator '%'", "the remainder operator requires int operands");
         }
         this.currType = new Ast.Type.Int();
@@ -480,8 +488,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             Ast.Expr.T expr = obj.getExprs().get(i);
             this.visit(expr);
             char placeholder = placeholders.get(i);
-            if (placeholder == 'd' && this.currType.getKind() != TypeKind.INT) {
-                typeError(DiagnosticCodes.TYPE_FORMAT, "int", typeName(this.currType), expressionName(expr),
+            if (placeholder == 'd' && !isIntegerLike(this.currType)) {
+                typeError(DiagnosticCodes.TYPE_FORMAT, "int or byte", typeName(this.currType), expressionName(expr),
                         expr.getLineNum(), expr.getSpan(), "printf %d argument", null);
             }
             if (placeholder == 'f'
@@ -542,9 +550,13 @@ public class SemanticVisitor implements ISemanticVisitor {
             error(obj.getLineNum(), "void 方法不能返回值");
         }
         this.visit(obj.getExpr());
-        if( !isMatch(typeOfMethodDeclared,this.currType))
-            typeError(DiagnosticCodes.TYPE_RETURN, typeName(typeOfMethodDeclared), typeName(this.currType),
-                    expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "return statement", null);
+        if (!isAssignable(typeOfMethodDeclared, this.currType, obj.getExpr())) {
+            if (!byteRangeErrorIfNeeded(typeOfMethodDeclared, this.currType, obj.getExpr(), obj.getLineNum(), obj.getSpan(),
+                    "return statement")) {
+                typeError(DiagnosticCodes.TYPE_RETURN, typeName(typeOfMethodDeclared), typeName(this.currType),
+                        expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "return statement", null);
+            }
+        }
     }
 
 
@@ -806,7 +818,62 @@ public class SemanticVisitor implements ISemanticVisitor {
             return true;
         if(target.getKind() == TypeKind.DOUBLE && curr.getKind() == TypeKind.INT)
             return true;
+        if(target.getKind() == TypeKind.INT && curr.getKind() == TypeKind.BYTE)
+            return true;
+        if(target.getKind() == TypeKind.FLOAT && curr.getKind() == TypeKind.BYTE)
+            return true;
+        if(target.getKind() == TypeKind.DOUBLE && curr.getKind() == TypeKind.BYTE)
+            return true;
         return false;
+    }
+
+    private boolean isAssignable(Ast.Type.T target, Ast.Type.T actual, Ast.Expr.T expression) {
+        if (target != null && target.getKind() == TypeKind.BYTE
+                && actual != null && actual.getKind() == TypeKind.INT) {
+            Long value = byteLiteralValue(expression);
+            return value != null && value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE;
+        }
+        return isMatch(target, actual);
+    }
+
+    private boolean byteRangeErrorIfNeeded(Ast.Type.T target, Ast.Type.T actual, Ast.Expr.T expression,
+                                        int lineNum, site.ilemon.util.SourceSpan span, String context) {
+        if (target == null || target.getKind() != TypeKind.BYTE
+                || actual == null || actual.getKind() != TypeKind.INT) {
+            return false;
+        }
+        Long value = byteLiteralValue(expression);
+        if (value != null && (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE)) {
+            site.ilemon.util.SourceSpan primarySpan = span != null ? span : expression.getSpan();
+            semanticError(DiagnosticCodes.TYPE_BYTE_RANGE,
+                    "byte literal is out of range: expected -128..127, but found " + value,
+                    lineNum, primarySpan, context, "byte is a signed 8-bit type",
+                    "use a value between -128 and 127");
+            return true;
+        }
+        return false;
+    }
+
+    private Long byteLiteralValue(Ast.Expr.T expression) {
+        if (expression instanceof Ast.Expr.Number number
+                && number.getType().getKind() == TypeKind.INT) {
+            try {
+                return Long.parseLong(number.getValue().toString());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        if (expression instanceof Ast.Expr.Sub sub
+                && sub.getLeft() instanceof Ast.Expr.Number zero
+                && sub.getRight() instanceof Ast.Expr.Number number
+                && zero.getValue().toString().equals("0")) {
+            try {
+                return -Long.parseLong(number.getValue().toString());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private Ast.Type.T promoteNumeric(Ast.Type.T left, Ast.Type.T right) {
@@ -827,7 +894,12 @@ public class SemanticVisitor implements ISemanticVisitor {
             return false;
         }
         TypeKind kind = type.getKind();
-        return kind == TypeKind.INT || kind == TypeKind.FLOAT || kind == TypeKind.DOUBLE;
+        return kind == TypeKind.INT || kind == TypeKind.BYTE
+                || kind == TypeKind.FLOAT || kind == TypeKind.DOUBLE;
+    }
+
+    private boolean isIntegerLike(Ast.Type.T type) {
+        return type != null && (type.getKind() == TypeKind.INT || type.getKind() == TypeKind.BYTE);
     }
 
     private boolean isArrayType(Ast.Type.T type) {
@@ -896,10 +968,13 @@ public class SemanticVisitor implements ISemanticVisitor {
             Ast.Type.T actualType = this.currType;
             this.visit(method.getFormals().get(i));
             Ast.Type.T expectedType = this.currType;
-            if (!isMatch(expectedType, actualType)) {
+            if (!isAssignable(expectedType, actualType, inputParams.get(i))) {
                 Ast.Expr.T argument = inputParams.get(i);
-                typeError(DiagnosticCodes.TYPE_ARGUMENT, typeName(expectedType), typeName(actualType), expressionName(argument),
-                        argument.getLineNum(), argument.getSpan(), "argument " + (i + 1) + " of '" + methodName + "'", null);
+                if (!byteRangeErrorIfNeeded(expectedType, actualType, argument, argument.getLineNum(), argument.getSpan(),
+                        "argument " + (i + 1) + " of '" + methodName + "'")) {
+                    typeError(DiagnosticCodes.TYPE_ARGUMENT, typeName(expectedType), typeName(actualType), expressionName(argument),
+                            argument.getLineNum(), argument.getSpan(), "argument " + (i + 1) + " of '" + methodName + "'", null);
+                }
             }
         }
         return this.methodNameRetTypeMap.get(methodName);

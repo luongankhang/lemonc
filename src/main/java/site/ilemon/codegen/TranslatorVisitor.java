@@ -288,7 +288,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private boolean isNumeric(Ast.Type.T type) {
-        return type instanceof Ast.Type.Int || type instanceof Ast.Type.Float || type instanceof Ast.Type.Double;
+        return type instanceof Ast.Type.Int || type instanceof Ast.Type.Byte
+                || type instanceof Ast.Type.Float || type instanceof Ast.Type.Double;
     }
 
     private Ast.Type.T promotedNumericType(Ast.Type.T left, Ast.Type.T right) {
@@ -301,10 +302,10 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private void emitConversion(Ast.Type.T from, Ast.Type.T to) {
-        if (from instanceof Ast.Type.Int && to instanceof Ast.Type.Float) {
+        if ((from instanceof Ast.Type.Int || from instanceof Ast.Type.Byte) && to instanceof Ast.Type.Float) {
             emit(new Ast.Stmt.I2f());
             this.type = new Ast.Type.Float();
-        } else if (from instanceof Ast.Type.Int && to instanceof Ast.Type.Double) {
+        } else if ((from instanceof Ast.Type.Int || from instanceof Ast.Type.Byte) && to instanceof Ast.Type.Double) {
             emit(new Ast.Stmt.I2d());
             this.type = new Ast.Type.Double();
         } else if (from instanceof Ast.Type.Float && to instanceof Ast.Type.Double) {
@@ -368,6 +369,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private Ast.Type.T toCodegenType(Type.T type) {
         if (type instanceof Type.Int) return new Ast.Type.Int();
+        if (type instanceof Type.Byte) return new Ast.Type.Byte();
         if (type instanceof Type.Float) return new Ast.Type.Float();
         if (type instanceof Type.Double) return new Ast.Type.Double();
         if (type instanceof Type.Bool) return new Ast.Type.Bool();
@@ -652,7 +654,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
         emitWideningConversion(toCodegenType(obj.getId().getType()));
 
         // 生成 xstore index
-        if (obj.getId().getType() instanceof Type.Int || obj.getId().getType() instanceof Type.Bool)
+        if (obj.getId().getType() instanceof Type.Int || obj.getId().getType() instanceof Type.Byte
+                || obj.getId().getType() instanceof Type.Bool)
             emit(new Ast.Stmt.Istore(index));
         else if (obj.getId().getType() instanceof Type.Float)
             emit(new Ast.Stmt.Fstore(index));
@@ -665,7 +668,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     @Override
     public void visit(Expr.Id obj) {
         int index = lookupIndex(obj.getId());
-        if (obj.getType() instanceof Type.Int) {
+        if (obj.getType() instanceof Type.Int || obj.getType() instanceof Type.Byte) {
             this.type = new Ast.Type.Int();
             emit(new Ast.Stmt.Iload(index));
         } else if (obj.getType() instanceof Type.Float) {
@@ -779,6 +782,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
     @Override
     public void visit(Type.Bool obj) {
         this.type = new Ast.Type.Bool();
+    }
+
+    @Override
+    public void visit(Type.Byte obj) {
+        this.type = new Ast.Type.Byte();
     }
 
     @Override
@@ -985,7 +993,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             this.visit(obj.getExpr());
         }
         emitWideningConversion(this.currentMethodReturnType);
-        if (this.type.getKind() == TypeKind.INT || this.type.getKind() == TypeKind.BOOL)
+        if (this.type.getKind() == TypeKind.INT || this.type.getKind() == TypeKind.BYTE
+                || this.type.getKind() == TypeKind.BOOL)
             emit(new Ast.Stmt.Ireturn());
         else if (this.type.getKind() == TypeKind.FLOAT)
             emit(new Ast.Stmt.Freturn());

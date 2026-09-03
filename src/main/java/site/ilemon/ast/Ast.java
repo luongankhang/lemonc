@@ -366,7 +366,7 @@ public class Ast {
          * 类型枚举，用于类型安全的比较（替代 toString().equals() 方式）
          */
         public enum TypeKind {
-            INT, FLOAT, DOUBLE, BOOL, STRING, VOID,
+            INT, FLOAT, DOUBLE, BOOL, BYTE, STRING, VOID,
             INT_ARRAY, FLOAT_ARRAY, DOUBLE_ARRAY, BOOL_ARRAY, STRING_ARRAY
         }
 
@@ -456,6 +456,15 @@ public class Ast {
             public void accept(ISemanticVisitor v) {
                 v.visit(this);
             }
+        }
+
+        public non-sealed static class Byte extends T {
+            @Override
+            public TypeKind getKind() { return TypeKind.BYTE; }
+            @Override
+            public String toString() { return "@byte"; }
+            @Override
+            public void accept(ISemanticVisitor v) { v.visit(this); }
         }
 
         // 数组类型

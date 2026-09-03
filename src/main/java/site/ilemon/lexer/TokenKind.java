@@ -14,6 +14,7 @@ public enum TokenKind {
 		Float,
 		Double,
 		Bool,
+		Byte,
 		While,
 		For,
 		True,

@@ -76,6 +76,14 @@ public String id;
             }
         }
 
+        public static class Byte extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            @Override
+            public TypeKind getKind() { return TypeKind.BYTE; }
+            @Override
+            public String toString() { return "@byte"; }
+        }
+
         public static class Int extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 @Override

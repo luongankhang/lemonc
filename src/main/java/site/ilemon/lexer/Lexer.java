@@ -1,6 +1,8 @@
 package site.ilemon.lexer;
 
 import site.ilemon.exception.LexException;
+import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticEngine;
 import site.ilemon.util.SourceSpan;
 
 import java.io.BufferedReader;
@@ -23,6 +25,7 @@ public class Lexer {
     public List<Token> tokens = new ArrayList<>();  // public for test compatibility
     private int tokenIndex = 0;
     private final String className;
+    private final DiagnosticEngine diagnosticEngine = new DiagnosticEngine();
 
     private static final Map<String, TokenKind> KEYWORDS = new HashMap<>();
 
@@ -62,6 +65,10 @@ public class Lexer {
 
     public String getClassName() {
         return this.className;
+    }
+
+    public DiagnosticEngine getDiagnosticEngine() {
+        return diagnosticEngine;
     }
 
     public String getSourceLine(int lineNumber) {
@@ -474,7 +481,9 @@ public class Lexer {
             }
             result.append('^');
         }
-        return new LexException(result.toString());
+        Diagnostic diagnostic = diagnosticEngine.error("LEX001", result.toString(),
+                SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source");
+        return new LexException(diagnostic);
     }
 
     private String errorMessageForState(LexerState state) {

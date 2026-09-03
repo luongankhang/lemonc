@@ -5,6 +5,8 @@ import site.ilemon.lexer.Lexer;
 import site.ilemon.lexer.Token;
 import site.ilemon.lexer.TokenKind;
 import site.ilemon.exception.ParseException;
+import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticEngine;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,11 +45,17 @@ public class Parser {
 	private Lexer lexer; // 词法分析器
 
 	private Token look;  // 当前token
+	private final DiagnosticEngine diagnosticEngine;
 
 	public Parser(Lexer lexer) throws IOException{
 		this.lexer=lexer;
+		this.diagnosticEngine = new DiagnosticEngine();
 		lexer.lexicalAnalysis();
 		move();
+	}
+
+	public DiagnosticEngine getDiagnosticEngine() {
+		return diagnosticEngine;
 	}
 
 	/**
@@ -79,11 +87,17 @@ public class Parser {
 	}
 
 	private void expected(String s) {
-		throw new ParseException(formatError("语法错误，期望 '" + s + "'，实际得到 '" + look.lexeme + "'"));
+		throw diagnosticException("PARSE001", "syntax error: expected '" + s
+				+ "', but found '" + look.lexeme + "'");
 	}
 
 	private void error(String message) {
-		throw new ParseException(formatError(message + "，当前 token 为 '" + look.lexeme + "'"));
+		throw diagnosticException("PARSE002", message + "; current token is '" + look.lexeme + "'");
+	}
+
+	private ParseException diagnosticException(String code, String message) {
+		Diagnostic diagnostic = diagnosticEngine.error(code, formatError(message), tokenSpan(look), "here");
+		return new ParseException(diagnostic);
 	}
 
 	private site.ilemon.util.SourceSpan tokenSpan(Token token) {
@@ -98,7 +112,7 @@ public class Parser {
 	private String formatError(String message) {
 		String sourceLine = lexer.getSourceLine(look.lineNumber);
 		StringBuilder result = new StringBuilder();
-		result.append(String.format("[语法分析] 行 %d, 列 %d: %s",
+		result.append(String.format("[parser] line %d, column %d: %s",
 				look.lineNumber, look.columnNumber, message));
 		if (sourceLine != null && !sourceLine.isEmpty()) {
 			result.append(System.lineSeparator());
@@ -709,9 +723,9 @@ public class Parser {
 			return expr;
 		}
 		else{
-			throw new ParseException(String.format(
-				"[语法分析] 行 %d: 语法错误，期望标识符、表达式、数字或字符串，实际得到 '%s'",
-				look.lineNumber, look.lexeme));
+			throw diagnosticException("PARSE003", String.format(
+				"syntax error: expected an identifier, expression, number, or string, but found '%s'",
+				look.lexeme));
 		}
 	}
 

@@ -5,23 +5,32 @@ import site.ilemon.ast.Ast;
 import java.util.HashMap;
 import java.util.List;
 import site.ilemon.exception.SemanticException;
+import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticEngine;
+import site.ilemon.util.SourceSpan;
 
 /**
  * Method-level variable table.
  */
 public class MethodVarTable {
     private final HashMap<String, Symbol> table;
+    private final DiagnosticEngine diagnosticEngine;
 
     public MethodVarTable() {
+        this(new DiagnosticEngine());
+    }
+
+    public MethodVarTable(DiagnosticEngine diagnosticEngine) {
         this.table = new HashMap<>();
+        this.diagnosticEngine = diagnosticEngine;
     }
 
     public void put(List<Ast.Declare.T> formals, List<Ast.Declare.T> locals) {
         for (Ast.Declare.T dec : formals) {
             Ast.Declare.DeclareSingle declareSingle = (Ast.Declare.DeclareSingle) dec;
             if (this.table.get(declareSingle.getId()) != null) {
-                throw new SemanticException("重复的参数 " + declareSingle.getId()
-                        + " 在行 " + dec.getLineNum());
+                throw duplicate("duplicate parameter " + declareSingle.getId()
+                        + " at line " + dec.getLineNum(), dec);
             }
             this.table.put(declareSingle.getId(), new Symbol(
                     declareSingle.getId(), declareSingle.getType(), Symbol.Kind.PARAMETER, dec.getLineNum()));
@@ -30,12 +39,20 @@ public class MethodVarTable {
         for (Ast.Declare.T dec : locals) {
             Ast.Declare.DeclareSingle declareSingle = (Ast.Declare.DeclareSingle) dec;
             if (this.table.get(declareSingle.getId()) != null) {
-                throw new SemanticException("重复的变量 " + declareSingle.getId()
-                        + " 在行 " + dec.getLineNum());
+                throw duplicate("duplicate variable " + declareSingle.getId()
+                        + " at line " + dec.getLineNum(), dec);
             }
             this.table.put(declareSingle.getId(), new Symbol(
                     declareSingle.getId(), declareSingle.getType(), Symbol.Kind.LOCAL, dec.getLineNum()));
         }
+    }
+
+    private SemanticException duplicate(String message, Ast.Declare.T declaration) {
+        Diagnostic diagnostic = diagnosticEngine.error("SEM002", message,
+                declaration.getSpan() == null
+                        ? SourceSpan.singlePoint(null, 0, Math.max(1, declaration.getLineNum()), 1)
+                        : declaration.getSpan(), "duplicate declaration");
+        return new SemanticException(diagnostic);
     }
 
     public Ast.Type.T get(String id) {

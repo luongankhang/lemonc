@@ -3,6 +3,8 @@ package site.ilemon.semantic;
 import site.ilemon.ast.Ast;
 import site.ilemon.ast.Ast.Type.TypeKind;
 import site.ilemon.exception.SemanticException;
+import site.ilemon.diagnostic.Diagnostic;
+import site.ilemon.diagnostic.DiagnosticEngine;
 import site.ilemon.visitor.ISemanticVisitor;
 
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     private boolean pass = true;
 
     private final boolean collectErrors;
+    private final DiagnosticEngine diagnosticEngine = new DiagnosticEngine();
 
     private final ArrayList<String> errors = new ArrayList<>();
 
@@ -69,6 +72,14 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     public static SemanticVisitor collecting() {
         return new SemanticVisitor(true);
+    }
+
+    public DiagnosticEngine getDiagnosticEngine() {
+        return diagnosticEngine;
+    }
+
+    public java.util.List<Diagnostic> getDiagnostics() {
+        return diagnosticEngine.diagnostics();
     }
 
     public ArrayList<String> getErrors() {
@@ -357,7 +368,7 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Method.MethodSingle obj) {
-        MethodVarTable mTable = new MethodVarTable();
+        MethodVarTable mTable = new MethodVarTable(diagnosticEngine);
         this.currMethodLocalVar = new HashSet<>();
         for( Ast.Declare.T dec : obj.getLocals()){
             Ast.Declare.DeclareSingle declareSingle = (Ast.Declare.DeclareSingle) dec;
@@ -653,12 +664,14 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     private void error(int lineNum, String msg){
         this.pass = false;
+        Diagnostic diagnostic = diagnosticEngine.error("SEM001", msg,
+                site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1), "here");
         if (this.collectErrors) {
-            this.errors.add("[语义分析] 行 " + lineNum + ": " + msg);
+            this.errors.add(diagnostic.message());
             this.errorLineNumbers.add(lineNum);
             return;
         }
-        throw new SemanticException("[语义分析] 行 " + lineNum + ": " + msg);
+        throw new SemanticException(diagnostic);
     }
 
     private boolean isMatch(Ast.Type.T target,Ast.Type.T curr){

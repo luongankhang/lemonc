@@ -5,6 +5,7 @@ import site.ilemon.codegen.ByteCodeGenerator;
 import site.ilemon.codegen.TranslatorVisitor;
 import site.ilemon.codegen.ast.Label;
 import site.ilemon.exception.CompilerException;
+import site.ilemon.diagnostic.Diagnostic;
 import site.ilemon.lexer.Lexer;
 import site.ilemon.lexer.Token;
 import site.ilemon.optimizer.AstOptimizer;
@@ -101,21 +102,32 @@ public class LemonC {
     }
 
     private static void printSemanticDiagnostics(SemanticVisitor semantic, Lexer lexer, PrintStream err) {
-        ArrayList<String> diagnostics = semantic.getErrors();
-        ArrayList<Integer> lineNumbers = semantic.getErrorLineNumbers();
-        for (int i = 0; i < diagnostics.size(); i++) {
-            err.println(diagnostics.get(i));
-            if (i < lineNumbers.size()) {
-                printSourcePointer(lexer.getSourceLine(lineNumbers.get(i)), err);
+        for (Diagnostic diagnostic : semantic.getDiagnostics()) {
+            err.println(formatDiagnostic(diagnostic));
+            if (diagnostic.primarySpan() != null) {
+                printSourcePointer(lexer.getSourceLine(diagnostic.primarySpan().getStartLine()),
+                        diagnostic.primarySpan().getStartColumn(), err);
             }
         }
+    }
+
+    private static String formatDiagnostic(Diagnostic diagnostic) {
+        String location = diagnostic.primarySpan() == null ? "" : " at " + diagnostic.primarySpan();
+        return diagnostic.severity().name().toLowerCase() + "[" + diagnostic.code() + "]"
+                + location + ": " + diagnostic.message();
     }
 
     private static void printSourcePointer(String sourceLine, PrintStream err) {
         if (sourceLine == null || sourceLine.isEmpty()) {
             return;
         }
-        int column = firstNonWhitespaceColumn(sourceLine);
+        printSourcePointer(sourceLine, firstNonWhitespaceColumn(sourceLine), err);
+    }
+
+    private static void printSourcePointer(String sourceLine, int column, PrintStream err) {
+        if (sourceLine == null || sourceLine.isEmpty()) {
+            return;
+        }
         err.println("    " + sourceLine);
         err.print("    ");
         for (int i = 1; i < column; i++) {

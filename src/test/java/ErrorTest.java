@@ -293,9 +293,8 @@ public class ErrorTest {
             fail("应该抛出 SemanticException");
         } catch (SemanticException e) {
             String msg = e.getMessage();
-            // 验证错误信息以 [语义分析] 开头，包含行号
-            assertTrue("错误信息应包含阶段标识: " + msg, msg.contains("[语义分析]"));
-            assertTrue("错误信息应包含行号: " + msg, msg.contains("行"));
+            assertTrue("error message should be in English: " + msg, msg.contains("undefined variable"));
+            assertTrue("error should carry a diagnostic: " + msg, e.getDiagnostic() != null);
         }
     }
 
@@ -306,9 +305,8 @@ public class ErrorTest {
             fail("应该抛出 ParseException");
         } catch (ParseException e) {
             String msg = e.getMessage();
-            // 验证错误信息以 [语法分析] 开头，包含行号
-            assertTrue("错误信息应包含阶段标识: " + msg, msg.contains("[语法分析]"));
-            assertTrue("错误信息应包含行号: " + msg, msg.contains("行"));
+            assertTrue("error message should be in English: " + msg, msg.contains("[parser]"));
+            assertTrue("error message should contain a line: " + msg, msg.contains("line"));
         }
     }
 

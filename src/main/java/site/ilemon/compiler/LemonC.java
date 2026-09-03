@@ -122,8 +122,23 @@ public class LemonC {
 
     private static String formatDiagnostic(Diagnostic diagnostic) {
         String location = diagnostic.primarySpan() == null ? "" : " at " + diagnostic.primarySpan();
-        return diagnostic.severity().name().toLowerCase() + "[" + diagnostic.code() + "]"
-                + location + ": " + diagnostic.message();
+        StringBuilder result = new StringBuilder(diagnostic.severity().name().toLowerCase())
+                .append('[').append(diagnostic.code()).append(']').append(location)
+                .append(": ").append(diagnostic.message());
+        if (diagnostic.typeContext() != null) {
+            var type = diagnostic.typeContext();
+            result.append(" (expected ").append(type.expectedType())
+                    .append(", actual ").append(type.actualType())
+                    .append(", expression ").append(type.expression())
+                    .append(", context ").append(type.context()).append(')');
+        }
+        for (String note : diagnostic.notes()) {
+            result.append(System.lineSeparator()).append("note: ").append(note);
+        }
+        for (var suggestion : diagnostic.suggestions()) {
+            result.append(System.lineSeparator()).append("help: ").append(suggestion.message());
+        }
+        return result.toString();
     }
 
     private static void printSourcePointer(String sourceLine, PrintStream err) {

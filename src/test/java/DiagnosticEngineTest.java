@@ -17,6 +17,7 @@ public class DiagnosticEngineTest {
         Diagnostic diagnostic = engine.error("E100")
                 .message("invalid assignment")
                 .primary(primary, "assignment")
+                .type("int", "bool", "True", "assignment")
                 .secondary(secondary, "declared here")
                 .note("the target types must match")
                 .suggestion(primary, "x", "use the declared target")
@@ -30,6 +31,8 @@ public class DiagnosticEngineTest {
         assertEquals(1, stored.secondaryLabels().size());
         assertEquals(1, stored.notes().size());
         assertEquals(1, stored.suggestions().size());
+        assertEquals("int", stored.typeContext().expectedType());
+        assertEquals("bool", stored.typeContext().actualType());
         assertTrue(engine.hasErrors());
     }
 }

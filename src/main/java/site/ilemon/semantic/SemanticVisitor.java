@@ -118,9 +118,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             return;
         }
         if (!isMatch(leftType, rightType)) {
-            error(lineNum, String.format(
-                    "运算符 '%s' 的左右操作数类型不匹配：左侧为 %s，右侧为 %s",
-                    operator, typeName(leftType), typeName(rightType)));
+            typeError("SEM-TYPE-OPERATOR", typeName(leftType), typeName(rightType), "binary expression",
+                    lineNum, null, "operator '" + operator + "'", "operand types must match or use a supported numeric conversion");
         }
         this.currType = leftType;
     }
@@ -128,9 +127,8 @@ public class SemanticVisitor implements ISemanticVisitor {
     private void checkBooleanOperandTypes(int lineNum, String operator, Ast.Type.T leftType, Ast.Type.T rightType) {
         if (leftType == null || rightType == null ||
                 leftType.getKind() != TypeKind.BOOL || rightType.getKind() != TypeKind.BOOL) {
-            error(lineNum, String.format(
-                    "运算符 '%s' 要求左右操作数都是 bool：左侧为 %s，右侧为 %s",
-                    operator, typeName(leftType), typeName(rightType)));
+            typeError("SEM-TYPE-OPERATOR", "bool", typeName(leftType) + " and " + typeName(rightType),
+                    "binary expression", lineNum, null, "operator '" + operator + "'", "use boolean operands");
         }
     }
 
@@ -167,13 +165,16 @@ public class SemanticVisitor implements ISemanticVisitor {
             if( this.currMethodLocalVar.contains(obj.getId().getId()))
                 this.currMethodLocalVar.remove(obj.getId().getId());
             this.visit(obj.getId());
+            Ast.Type.T targetType = this.currType;
             if (isArrayType(this.currType) || isArrayType(exprType)) {
-                error(obj.getLineNum(), String.format("数组不支持整体赋值：不能将 %s 赋值给 %s",
-                        typeName(exprType), typeName(this.currType)));
+                typeError("SEM-TYPE-ASSIGNMENT", typeName(targetType), typeName(exprType),
+                        expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
+                        "array assignment", "arrays cannot be assigned as whole values");
             }
             if( !isMatch(this.currType,exprType))
-                error(obj.getLineNum(),String.format("不能将 %s 类型的表达式赋值给 %s 类型的变量 '%s'",
-                        typeName(exprType), typeName(this.currType), obj.getId().getId()));
+                typeError("SEM-TYPE-ASSIGNMENT", typeName(targetType), typeName(exprType),
+                        expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(),
+                        "assignment to '" + obj.getId().getId() + "'", null);
         }
 
     }
@@ -221,9 +222,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         if (leftType == null || rightType == null
                 || leftType.getKind() != TypeKind.INT
                 || rightType.getKind() != TypeKind.INT) {
-            error(obj.getLineNum(), String.format(
-                    "运算符 '%%' 只支持 int 操作数：左侧为 %s，右侧为 %s",
-                    typeName(leftType), typeName(rightType)));
+            typeError("SEM-TYPE-OPERATOR", "int", typeName(leftType) + " and " + typeName(rightType),
+                    expressionName(obj), obj.getLineNum(), obj.getSpan(), "operator '%'", "the remainder operator requires int operands");
         }
         this.currType = new Ast.Type.Int();
     }
@@ -280,8 +280,8 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Stmt.If obj) {
         this.visit(obj.getCondition());
         if (this.currType.getKind() != TypeKind.BOOL)
-            error(obj.getCondition().getLineNum(),
-                    "if 条件必须是 bool，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+                    obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "if condition", null);
 
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         this.currMethodLocalVar = new HashSet<>(before);
@@ -478,14 +478,14 @@ public class SemanticVisitor implements ISemanticVisitor {
             this.visit(expr);
             char placeholder = placeholders.get(i);
             if (placeholder == 'd' && this.currType.getKind() != TypeKind.INT) {
-                error(expr.getLineNum(), String.format(
-                        "printf 占位符 %%d 需要 int，实际为 %s", typeName(this.currType)));
+                typeError("SEM-TYPE-PRINTF", "int", typeName(this.currType), expressionName(expr),
+                        expr.getLineNum(), expr.getSpan(), "printf %d argument", null);
             }
             if (placeholder == 'f'
                     && this.currType.getKind() != TypeKind.FLOAT
                     && this.currType.getKind() != TypeKind.DOUBLE) {
-                error(expr.getLineNum(), String.format(
-                        "printf 占位符 %%f 需要 float 或 double，实际为 %s", typeName(this.currType)));
+                typeError("SEM-TYPE-PRINTF", "float or double", typeName(this.currType), expressionName(expr),
+                        expr.getLineNum(), expr.getSpan(), "printf %f argument", null);
             }
         }
     }
@@ -514,7 +514,8 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Expr.Not obj) {
         this.visit(obj.getExpr());
         if( this.currType.getKind() != TypeKind.BOOL)
-            error(obj.getLineNum(),"! 运算符要求操作数是 bool，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-OPERATOR", "bool", typeName(this.currType), expressionName(obj.getExpr()),
+                    obj.getLineNum(), obj.getSpan(), "operator '!'", "use a boolean expression");
         this.currType = new Ast.Type.Bool();
     }
 
@@ -539,8 +540,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getExpr());
         if( !isMatch(typeOfMethodDeclared,this.currType))
-            error(obj.getLineNum(),String.format("返回值类型不匹配：期望 %s，实际 %s",
-                    typeName(typeOfMethodDeclared), typeName(this.currType)));
+            typeError("SEM-TYPE-RETURN", typeName(typeOfMethodDeclared), typeName(this.currType),
+                    expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "return statement", null);
     }
 
 
@@ -548,7 +549,8 @@ public class SemanticVisitor implements ISemanticVisitor {
     public void visit(Ast.Stmt.While obj) {
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
-            error(obj.getCondition().getLineNum(), "while 条件必须是 bool，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+                    obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "while condition", null);
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
         this.currMethodLocalVar = new HashSet<>(before);
@@ -564,7 +566,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
-            error(obj.getCondition().getLineNum(), "for 条件必须是 bool，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-CONDITION", "bool", typeName(this.currType), expressionName(obj.getCondition()),
+                    obj.getCondition().getLineNum(), obj.getCondition().getSpan(), "for condition", null);
         HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
         this.currMethodLocalVar = new HashSet<>(before);
@@ -681,6 +684,31 @@ public class SemanticVisitor implements ISemanticVisitor {
         throw new SemanticException(diagnostic);
     }
 
+    private void typeError(String code, String expected, String actual, String expression,
+                           int lineNum, site.ilemon.util.SourceSpan span, String context, String note) {
+        this.pass = false;
+        var builder = diagnosticEngine.error(code)
+                .message("type mismatch: expected " + expected + ", but found " + actual)
+                .type(expected, actual, expression, context)
+                .primary(span == null
+                        ? site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1)
+                        : span, context);
+        if (note != null) {
+            builder.note(note);
+        }
+        Diagnostic diagnostic = builder.report();
+        if (this.collectErrors) {
+            this.errors.add(diagnostic.message());
+            this.errorLineNumbers.add(lineNum);
+            return;
+        }
+        throw new SemanticException(diagnostic);
+    }
+
+    private String expressionName(Ast.Expr.T expression) {
+        return expression == null ? "expression" : expression.getClass().getSimpleName();
+    }
+
     private void semanticError(String code, String message, int lineNum,
                                site.ilemon.util.SourceSpan span, String primaryLabel,
                                String note, String suggestion) {
@@ -762,8 +790,8 @@ public class SemanticVisitor implements ISemanticVisitor {
                     op, typeName(leftType), typeName(this.currType)));
         }
         if (promoteNumeric(leftType, this.currType) == null && !isMatch(leftType, this.currType)) {
-            error(lineNum, String.format("比较运算符 '%s' 的左右操作数类型不匹配：左侧为 %s，右侧为 %s",
-                    op, typeName(leftType), typeName(this.currType)));
+            typeError("SEM-TYPE-OPERATOR", typeName(leftType), typeName(this.currType), "comparison expression",
+                    lineNum, left.getSpan(), "comparison operator '" + op + "'", null);
         }
         this.currType = new Ast.Type.Bool();
     }
@@ -776,8 +804,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         Ast.Type.T leftType = this.currType;
         this.visit(right);
         if (promoteNumeric(leftType, this.currType) == null) {
-            error(lineNum, String.format("比较运算符 '%s' 只支持同类型数值操作数：左侧为 %s，右侧为 %s",
-                    op, typeName(leftType), typeName(this.currType)));
+            typeError("SEM-TYPE-OPERATOR", "numeric operands", typeName(leftType) + " and " + typeName(this.currType),
+                    "comparison expression", lineNum, left.getSpan(), "comparison operator '" + op + "'", null);
         }
         this.currType = new Ast.Type.Bool();
     }
@@ -806,8 +834,9 @@ public class SemanticVisitor implements ISemanticVisitor {
             this.visit(method.getFormals().get(i));
             Ast.Type.T expectedType = this.currType;
             if (!isMatch(expectedType, actualType)) {
-                error(lineNum, String.format("方法 '%s' 的第 %d 个参数类型不匹配：期望 %s，实际 %s",
-                        methodName, i + 1, typeName(expectedType), typeName(actualType)));
+                Ast.Expr.T argument = inputParams.get(i);
+                typeError("SEM-TYPE-ARGUMENT", typeName(expectedType), typeName(actualType), expressionName(argument),
+                        argument.getLineNum(), argument.getSpan(), "argument " + (i + 1) + " of '" + methodName + "'", null);
             }
         }
         return this.methodNameRetTypeMap.get(methodName);
@@ -868,7 +897,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         this.visit(obj.getIndex());
         if (this.currType.getKind() != TypeKind.INT) {
-            error(obj.getIndex().getLineNum(), "数组下标必须是 int，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-INDEX", "int", typeName(this.currType), expressionName(obj.getIndex()),
+                    obj.getIndex().getLineNum(), obj.getIndex().getSpan(), "array index", null);
         }
         // 设置元素类型
         obj.setElementType(elementType);
@@ -931,7 +961,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         // 检查下标类型
         this.visit(obj.getIndex());
         if (this.currType.getKind() != TypeKind.INT) {
-            error(obj.getIndex().getLineNum(), "数组下标必须是 int，实际为 " + typeName(this.currType));
+            typeError("SEM-TYPE-INDEX", "int", typeName(this.currType), expressionName(obj.getIndex()),
+                    obj.getIndex().getLineNum(), obj.getIndex().getSpan(), "array index", null);
         }
         // 检查赋值类型
         this.visit(obj.getExpr());

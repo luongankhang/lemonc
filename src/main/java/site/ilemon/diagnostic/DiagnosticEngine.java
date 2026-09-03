@@ -33,7 +33,7 @@ public final class DiagnosticEngine {
         if (!englishMessage.equals(diagnostic.message())) {
             normalized = new Diagnostic(diagnostic.severity(), diagnostic.code(), englishMessage,
                     diagnostic.primarySpan(), diagnostic.primaryLabel(),
-                    diagnostic.secondaryLabels(), diagnostic.notes(), diagnostic.suggestions());
+                    diagnostic.secondaryLabels(), diagnostic.notes(), diagnostic.suggestions(), diagnostic.typeContext());
         }
         diagnostics.add(normalized);
         return normalized;

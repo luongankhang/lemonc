@@ -16,6 +16,7 @@ public final class DiagnosticBuilder {
     private final List<DiagnosticLabel> secondaryLabels = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
     private final List<DiagnosticSuggestion> suggestions = new ArrayList<>();
+    private TypeDiagnosticContext typeContext;
 
     DiagnosticBuilder(DiagnosticEngine engine, Severity severity, String code) {
         this.engine = engine;
@@ -53,9 +54,14 @@ public final class DiagnosticBuilder {
         return suggestion(span, replacement, "replace with '" + replacement + "'");
     }
 
+    public DiagnosticBuilder type(String expected, String actual, String expression, String context) {
+        this.typeContext = new TypeDiagnosticContext(expected, actual, expression, context);
+        return this;
+    }
+
     public Diagnostic build() {
         return new Diagnostic(severity, code, DiagnosticEngine.english(message), primarySpan,
-                primaryLabel, secondaryLabels, notes, suggestions);
+                primaryLabel, secondaryLabels, notes, suggestions, typeContext);
     }
 
     public Diagnostic report() {

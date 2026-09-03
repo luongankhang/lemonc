@@ -1,0 +1,28 @@
+class StringByteLongArrays {
+    int lengths(string names[], byte bytes[], long values[]) {
+        return names.length + bytes.length + values.length;
+    }
+
+    string[] makeNames() {
+        string names[2];
+        names[0] = "Alice";
+        names[1] = "Bob";
+        return names;
+    }
+
+    void main() {
+        string names[2];
+        byte bytes[2];
+        long values[2];
+        int total;
+        names[0] = "Alice";
+        names[1] = "Bob";
+        bytes[0] = -128;
+        bytes[1] = 127;
+        values[0] = 10;
+        values[1] = 20;
+        total = lengths(names, bytes, values);
+        makeNames();
+        printf("array-lengths=%d\n", total);
+    }
+}

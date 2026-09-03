@@ -1,0 +1,13 @@
+class ByteLongWidening {
+    long add(byte small, long wide) {
+        return small + wide;
+    }
+
+    void main() {
+        byte small;
+        long value;
+        small = 120;
+        value = add(small, 900);
+        printf("value=%d\n", value);
+    }
+}

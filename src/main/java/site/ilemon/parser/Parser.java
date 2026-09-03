@@ -91,17 +91,40 @@ public class Parser {
 	}
 
 	private void expected(String s) {
+		String suggestion = isInsertableToken(s) ? s : null;
 		throw diagnosticException("PARSE001", "syntax error: expected '" + s
-				+ "', but found '" + look.lexeme + "'");
+				+ "', but found '" + look.lexeme + "'", suggestion);
 	}
 
 	private void error(String message) {
 		throw diagnosticException("PARSE002", message + "; current token is '" + look.lexeme + "'");
 	}
 
+	private void error(String message, String suggestion) {
+		throw diagnosticException("PARSE002", message + "; current token is '" + look.lexeme + "'", suggestion);
+	}
+
 	private ParseException diagnosticException(String code, String message) {
-		Diagnostic diagnostic = diagnosticEngine.error(code, formatError(message), tokenSpan(look), "here");
+		return diagnosticException(code, message, null);
+	}
+
+	private ParseException diagnosticException(String code, String message, String suggestion) {
+		var builder = diagnosticEngine.error(code)
+				.message(formatError(message))
+				.primary(tokenSpan(look), "here");
+		if (suggestion != null && tokenSpan(look) != null) {
+			var span = tokenSpan(look);
+			var insertion = site.ilemon.util.SourceSpan.singlePoint(span.getFileName(), span.getStartOffset(),
+					span.getStartLine(), span.getStartColumn());
+			builder.suggestion(insertion, suggestion, "insert '" + suggestion + "'");
+		}
+		Diagnostic diagnostic = builder.report();
 		return new ParseException(diagnostic);
+	}
+
+	private boolean isInsertableToken(String token) {
+		return token != null && token.length() <= 2
+				&& !token.equals("Id") && !token.equals("Num") && !token.equals("EOF");
 	}
 
 	private site.ilemon.util.SourceSpan tokenSpan(Token token) {
@@ -250,10 +273,7 @@ public class Parser {
 			return false;
 		}
 		Token id = lexer.lookahead(1);
-		Token afterId = lexer.lookahead(2);
-		return id != null && id.kind == TokenKind.Id
-				&& afterId != null
-				&& (afterId.kind == TokenKind.Semicolon || afterId.kind == TokenKind.Lbracket);
+		return id != null && id.kind == TokenKind.Id;
 	}
 
 	// // <declare> -> type id; | type id[size];
@@ -299,7 +319,7 @@ public class Parser {
 				return d;
 			}
 			else {
-				error(String.format("声明语句格式错误，变量 '%s' 后期望 ';' 或数组下标声明", id));
+				error(String.format("invalid variable declaration for '%s'; expected ';' or an array declarator", id), ";");
 				return null;
 			}
 
@@ -524,11 +544,14 @@ public class Parser {
 			else{
 				String id = look.lexeme;
 				int lineNum = look.lineNumber;
+				Token idToken = look;
 				match( new Token(TokenKind.Id) );
 				match( new Token(TokenKind.Assign) );
 				Ast.Expr.T expr = parseExpr();
 				match( new Token(TokenKind.Semicolon) );
-				stmt = new Ast.Stmt.Assign(new Ast.Expr.Id(id,lineNum), expr, lineNum);
+				Ast.Expr.Id target = new Ast.Expr.Id(id, lineNum);
+				target.setSpan(tokenSpan(idToken));
+				stmt = new Ast.Stmt.Assign(target, expr, lineNum);
 				
 			}
 		}

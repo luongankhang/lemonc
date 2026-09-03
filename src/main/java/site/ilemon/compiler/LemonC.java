@@ -136,7 +136,8 @@ public class LemonC {
             result.append(System.lineSeparator()).append("note: ").append(note);
         }
         for (var suggestion : diagnostic.suggestions()) {
-            result.append(System.lineSeparator()).append("help: ").append(suggestion.message());
+            result.append(System.lineSeparator()).append("help: ").append(suggestion.message())
+                    .append(" (replace with '").append(suggestion.replacement()).append("')");
         }
         return result.toString();
     }

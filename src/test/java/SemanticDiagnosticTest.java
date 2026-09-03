@@ -27,6 +27,8 @@ public class SemanticDiagnosticTest {
         assertEquals(1, diagnostics.get(1).primarySpan().getStartLine());
         assertNotNull(diagnostics.get(0).primaryLabel());
         assertNotNull(diagnostics.get(1).primaryLabel());
+        assertEquals(1, diagnostics.get(0).suggestions().size());
+        assertEquals("y", diagnostics.get(0).suggestions().get(0).replacement());
     }
 
     @Test

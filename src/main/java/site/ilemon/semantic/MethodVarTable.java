@@ -4,6 +4,7 @@ import site.ilemon.ast.Ast;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import site.ilemon.exception.SemanticException;
 import site.ilemon.diagnostic.Diagnostic;
 import site.ilemon.diagnostic.DiagnosticEngine;
@@ -64,6 +65,10 @@ public class MethodVarTable {
 
     public Symbol resolve(String id) {
         return this.table.get(id);
+    }
+
+    public Set<String> names() {
+        return Set.copyOf(table.keySet());
     }
 
     public Ast.Type.T put(String key, Ast.Type.T value) {

@@ -46,7 +46,20 @@ public final class DiagnosticBuilder {
     }
 
     public DiagnosticBuilder suggestion(SourceSpan span, String replacement, String message) {
-        this.suggestions.add(new DiagnosticSuggestion(span, replacement, message));
+        return suggestion(span, replacement, message, 1.0);
+    }
+
+    public DiagnosticBuilder suggestion(DiagnosticSuggestion suggestion) {
+        if (suggestion != null && suggestion.confidence() >= 0.75) {
+            this.suggestions.add(suggestion);
+        }
+        return this;
+    }
+
+    public DiagnosticBuilder suggestion(SourceSpan span, String replacement, String message, double confidence) {
+        if (confidence >= 0.75) {
+            this.suggestions.add(new DiagnosticSuggestion(span, replacement, message, confidence));
+        }
         return this;
     }
 

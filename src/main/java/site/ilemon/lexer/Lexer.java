@@ -481,10 +481,17 @@ public class Lexer {
             }
             result.append('^');
         }
-        Diagnostic diagnostic = diagnosticEngine.error("LEX001")
+        var builder = diagnosticEngine.error("LEX001")
                 .message(result.toString())
-                .primary(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source")
-                .report();
+                .primary(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source");
+        if (message.contains("did you mean '&&'")) {
+            builder.suggestion(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "&&",
+                    "replace '&' with '&&'");
+        } else if (message.contains("did you mean '||'")) {
+            builder.suggestion(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "||",
+                    "replace '|' with '||'");
+        }
+        Diagnostic diagnostic = builder.report();
         return new LexException(diagnostic);
     }
 

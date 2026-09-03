@@ -35,4 +35,17 @@ public class DiagnosticEngineTest {
         assertEquals("bool", stored.typeContext().actualType());
         assertTrue(engine.hasErrors());
     }
+
+    @Test
+    public void omitsLowConfidenceFixIts() {
+        var engine = new DiagnosticEngine();
+        var span = SourceSpan.singlePoint("Example.lemon", 0, 1, 1);
+        Diagnostic diagnostic = engine.error("E101")
+                .message("unknown name")
+                .primary(span, "name")
+                .suggestion(span, "unrelated", "replace the name", 0.5)
+                .report();
+
+        assertTrue(diagnostic.suggestions().isEmpty());
+    }
 }

@@ -261,7 +261,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         if( mTable.get(obj.getId()) == null )
             semanticError("SEM-UNKNOWN-VARIABLE", "undefined variable: " + obj.getId(),
                     obj.getLineNum(), obj.getSpan(), "unknown variable",
-                    "the name is not declared in the current method scope", null);
+                    "the name is not declared in the current method scope",
+                    nearestName(obj.getId(), mTable.names()));
         if (mTable.get(obj.getId()) == null) {
             this.currType = unknownType();
             obj.setType(this.currType);
@@ -709,6 +710,50 @@ public class SemanticVisitor implements ISemanticVisitor {
         return expression == null ? "expression" : expression.getClass().getSimpleName();
     }
 
+    /** Returns a spelling suggestion only when the candidate is unambiguously close. */
+    private String nearestName(String unknown, java.util.Set<String> candidates) {
+        if (unknown == null || unknown.isEmpty() || candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        String best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        boolean tied = false;
+        for (String candidate : candidates) {
+            if (candidate == null || candidate.equals(unknown)) {
+                continue;
+            }
+            int distance = editDistance(unknown, candidate);
+            if (distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+                tied = false;
+            } else if (distance == bestDistance) {
+                tied = true;
+            }
+        }
+        int threshold = Math.max(1, unknown.length() / 3);
+        return best != null && !tied && bestDistance <= threshold ? best : null;
+    }
+
+    private int editDistance(String left, String right) {
+        int[] previous = new int[right.length() + 1];
+        int[] current = new int[right.length() + 1];
+        for (int j = 0; j <= right.length(); j++) {
+            previous[j] = j;
+        }
+        for (int i = 1; i <= left.length(); i++) {
+            current[0] = i;
+            for (int j = 1; j <= right.length(); j++) {
+                int substitution = previous[j - 1] + (left.charAt(i - 1) == right.charAt(j - 1) ? 0 : 1);
+                current[j] = Math.min(Math.min(previous[j] + 1, current[j - 1] + 1), substitution);
+            }
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+        return previous[right.length()];
+    }
+
     private void semanticError(String code, String message, int lineNum,
                                site.ilemon.util.SourceSpan span, String primaryLabel,
                                String note, String suggestion) {
@@ -821,7 +866,8 @@ public class SemanticVisitor implements ISemanticVisitor {
         if (method == null) {
             semanticError("SEM-UNKNOWN-FUNCTION", "undefined function: " + methodName,
                     lineNum, span, "unknown function",
-                    "no function with this name is declared in the current program", null);
+                    "no function with this name is declared in the current program",
+                    nearestName(methodName, methodMap.keySet()));
             return unknownType();
         }
         if (inputParams.size() != method.getFormals().size()) {

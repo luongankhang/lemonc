@@ -39,4 +39,24 @@ public class ParserRecoveryTest {
             Files.deleteIfExists(directory.toPath());
         }
     }
+
+    @Test
+    public void suggestsMissingSemicolonWithoutAcceptingInvalidSyntax() throws Exception {
+        File directory = Files.createTempDirectory("lemonc-missing-token").toFile();
+        File source = new File(directory, "Missing.lemon");
+        Files.writeString(source.toPath(), "class Missing { void main() { int x } }\n", StandardCharsets.UTF_8);
+        try {
+            Parser parser = new Parser(new Lexer(source));
+            try {
+                parser.parse();
+                fail("Expected ParseException");
+            } catch (site.ilemon.exception.ParseException expected) {
+                Diagnostic diagnostic = parser.getDiagnostics().get(0);
+                assertEquals(";", diagnostic.suggestions().get(0).replacement());
+            }
+        } finally {
+            Files.deleteIfExists(source.toPath());
+            Files.deleteIfExists(directory.toPath());
+        }
+    }
 }

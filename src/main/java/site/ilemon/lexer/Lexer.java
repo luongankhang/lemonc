@@ -1,6 +1,7 @@
 package site.ilemon.lexer;
 
 import site.ilemon.exception.LexException;
+import site.ilemon.util.SourceSpan;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -166,15 +167,15 @@ public class Lexer {
     private void skipMultilineComment() {
         int startLine = line;
         int startColumn = column;
-        advance();
-        advance();
+        advance(); // Skip '/'
+        advance(); // Skip '*'
         while (position < source.length()) {
             if (peek() == '*' && peek(1) == '/') {
-                advance();
-                advance();
+                advance(); // Skip '*'
+                advance(); // Skip '/'
                 return;
             }
-            advance();
+            advance(); // Skip current character
         }
         throw lexicalError("unclosed multiline comment", startLine, startColumn);
     }
@@ -275,10 +276,17 @@ public class Lexer {
     }
 
     private Token nextToken() {
+        int tokenStartOffset = position;
         skipWhitespace();
+        tokenStartOffset = position;
 
         if (position >= source.length()) {
-            return new Token(TokenKind.EOF, "EOF", line, column);
+            SourceSpan eofSpan = new SourceSpan(className, position, position, source);
+            Token eofToken = new Token(TokenKind.EOF, "EOF", eofSpan);
+            // Manually set the line/column to match the lexer's current state
+            eofToken.lineNumber = line;
+            eofToken.columnNumber = column;
+            return eofToken;
         }
 
         LexerState state = LexerState.START;
@@ -310,7 +318,69 @@ public class Lexer {
             }
         }
 
-        return makeToken(state, lexeme.toString(), startLine, startColumn);
+        int endOffset = position;
+        SourceSpan span = new SourceSpan(className, tokenStartOffset, endOffset, source);
+        Token token = makeToken(state, lexeme.toString(), span);
+        // Override the line/column with the values captured at the start of token recognition
+        token.lineNumber = startLine;
+        token.columnNumber = startColumn;
+        return token;
+    }
+    
+    private TokenKind getTokenKindForState(LexerState state, String lexeme) {
+        switch (state) {
+            case START:
+                if (lexeme.length() == 1) {
+                    return getSingleCharTokenKind(lexeme.charAt(0));
+                }
+                break;
+
+            case IN_ID:
+                TokenKind kind = KEYWORDS.get(lexeme);
+                if (kind != null) {
+                    return kind;
+                }
+                return TokenKind.Id;
+
+            case IN_NUM:
+                return TokenKind.Num;
+
+            case IN_FLOAT:
+                return TokenKind.FloatLiteral;
+
+            case IN_STRING:
+                return TokenKind.String;
+
+            case IN_ASSIGN:
+                if (lexeme.equals("==")) return TokenKind.EQ;
+                return TokenKind.Assign;
+
+            case IN_LT:
+                if (lexeme.equals("<=")) return TokenKind.LTE;
+                return TokenKind.LT;
+
+            case IN_GT:
+                if (lexeme.equals(">=")) return TokenKind.GTE;
+                return TokenKind.GT;
+
+            case IN_NOT:
+                if (lexeme.equals("!=")) return TokenKind.NEQ;
+                return TokenKind.Not;
+
+            case IN_AND:
+                return TokenKind.And;
+
+            case IN_OR:
+                return TokenKind.Or;
+
+            case IN_DIV:
+                return TokenKind.Div;
+
+            default:
+                break;
+        }
+        // Fallback to makeToken for error handling
+        return null;
     }
 
     private boolean shouldConsumeOnDone(LexerState state, char c) {
@@ -338,63 +408,63 @@ public class Lexer {
         }
     }
 
-    private Token makeToken(LexerState state, String lexeme, int line, int column) {
+    private Token makeToken(LexerState state, String lexeme, SourceSpan span) {
         switch (state) {
             case START:
                 if (lexeme.length() == 1) {
-                    return new Token(getSingleCharTokenKind(lexeme.charAt(0)), lexeme, line, column);
+                    return new Token(getSingleCharTokenKind(lexeme.charAt(0)), lexeme, span);
                 }
                 break;
 
             case IN_ID:
                 TokenKind kind = KEYWORDS.get(lexeme);
                 if (kind != null) {
-                    return new Token(kind, lexeme, line, column);
+                    return new Token(kind, lexeme, span);
                 }
-                return new Token(TokenKind.Id, lexeme, line, column);
+                return new Token(TokenKind.Id, lexeme, span);
 
             case IN_NUM:
-                return new Token(TokenKind.Num, lexeme, line, column);
+                return new Token(TokenKind.Num, lexeme, span);
 
             case IN_FLOAT:
-                return new Token(TokenKind.FloatLiteral, lexeme, line, column);
+                return new Token(TokenKind.FloatLiteral, lexeme, span);
 
             case IN_STRING:
                 String str = lexeme.substring(1);
                 if (str.endsWith("\"")) {
                     str = str.substring(0, str.length() - 1);
                 }
-                return new Token(TokenKind.String, str, line, column);
+                return new Token(TokenKind.String, str, span);
 
             case IN_ASSIGN:
-                if (lexeme.equals("==")) return new Token(TokenKind.EQ, lexeme, line, column);
-                return new Token(TokenKind.Assign, lexeme, line, column);
+                if (lexeme.equals("==")) return new Token(TokenKind.EQ, lexeme, span);
+                return new Token(TokenKind.Assign, lexeme, span);
 
             case IN_LT:
-                if (lexeme.equals("<=")) return new Token(TokenKind.LTE, lexeme, line, column);
-                return new Token(TokenKind.LT, lexeme, line, column);
+                if (lexeme.equals("<=")) return new Token(TokenKind.LTE, lexeme, span);
+                return new Token(TokenKind.LT, lexeme, span);
 
             case IN_GT:
-                if (lexeme.equals(">=")) return new Token(TokenKind.GTE, lexeme, line, column);
-                return new Token(TokenKind.GT, lexeme, line, column);
+                if (lexeme.equals(">=")) return new Token(TokenKind.GTE, lexeme, span);
+                return new Token(TokenKind.GT, lexeme, span);
 
             case IN_NOT:
-                if (lexeme.equals("!=")) return new Token(TokenKind.NEQ, lexeme, line, column);
-                return new Token(TokenKind.Not, lexeme, line, column);
+                if (lexeme.equals("!=")) return new Token(TokenKind.NEQ, lexeme, span);
+                return new Token(TokenKind.Not, lexeme, span);
 
             case IN_AND:
-                return new Token(TokenKind.And, lexeme, line, column);
+                return new Token(TokenKind.And, lexeme, span);
 
             case IN_OR:
-                return new Token(TokenKind.Or, lexeme, line, column);
+                return new Token(TokenKind.Or, lexeme, span);
 
             case IN_DIV:
-                return new Token(TokenKind.Div, lexeme, line, column);
+                return new Token(TokenKind.Div, lexeme, span);
 
             default:
                 break;
         }
-        throw lexicalError("unknown token '" + lexeme + "'", line, column);
+        throw lexicalError("unknown token '" + lexeme + "'", span.getStartLine(), span.getStartColumn());
     }
 
     private LexException lexicalError(String message, int lineNumber, int columnNumber) {

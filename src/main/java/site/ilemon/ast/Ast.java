@@ -16,6 +16,10 @@ public class Ast {
      */
     public static class Program{
         public static abstract class T{
+            // Thêm SourceSpan
+            private site.ilemon.util.SourceSpan span;
+            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
+            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class ProgramSingle extends T{
@@ -39,6 +43,10 @@ public class Ast {
      */
     public static class MainClass{
         public static abstract class T{
+            // Thêm SourceSpan
+            private site.ilemon.util.SourceSpan span;
+            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
+            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class MainClassSingle extends T {
@@ -77,6 +85,10 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
+            // Thêm SourceSpan
+            private site.ilemon.util.SourceSpan span;
+            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
+            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
 
@@ -104,6 +116,13 @@ public class Ast {
                 this.expr = exp;
                 //this.type = type;
                 this.setLineNum(lineNum);
+            }
+
+            // Constructor mới nhận SourceSpan
+            public Assign(Ast.Expr.Id id, Expr.T exp, site.ilemon.util.SourceSpan span) {
+                this.id = id;
+                this.expr = exp;
+                this.setSpan(span);
             }
 
             @Override
@@ -306,6 +325,10 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
+            // Thêm SourceSpan
+            private site.ilemon.util.SourceSpan span;
+            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
+            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class DeclareSingle extends T {
@@ -496,6 +519,10 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
+            // Thêm SourceSpan
+            private site.ilemon.util.SourceSpan span;
+            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
+            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
 
             public abstract void accept(ISemanticVisitor v);
         }
@@ -513,6 +540,13 @@ public class Ast {
                 this.setLeft(left);
                 this.setRight(right);
                 this.setLineNum(lineNum);
+            }
+
+            // Constructor mới nhận SourceSpan
+            public Add(Ast.Expr.T left, Ast.Expr.T right, site.ilemon.util.SourceSpan span) {
+                this.setLeft(left);
+                this.setRight(right);
+                this.setSpan(span);
             }
 
             @Override
@@ -893,6 +927,19 @@ public class Ast {
                 this.id = id;
                 this.type = type;
                 this.setLineNum(lineNum);
+            }
+
+            // Constructor mới nhận SourceSpan
+            public Id(String id, site.ilemon.util.SourceSpan span)
+            {
+                this.id = id;
+                this.setSpan(span);
+            }
+
+            public Id(String id, Type.T type, site.ilemon.util.SourceSpan span) {
+                this.id = id;
+                this.type = type;
+                this.setSpan(span);
             }
 
             @Override

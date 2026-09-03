@@ -487,30 +487,35 @@ public class Parser {
 		Token ahead = lexer.lookahead(1);
 		if( ahead.kind == TokenKind.Lparen ){
 			String mthName = look.lexeme;
-			int lineNumber = look.lineNumber;
+			int lineNumber = look.lineNumber; // Sử dụng lineNumber
 			Ast.Expr.T expr = parseMethodCall();
 			if( expr instanceof Ast.Expr.Call){
+				// Sử dụng constructor cũ
 				return new Ast.Stmt.Call(mthName,((Ast.Expr.Call)expr).getInputParams(),lineNumber);
 			}
 		}
 		else if( ahead.kind == TokenKind.Lbracket ){
 			String arrayName = look.lexeme;
-			int lineNum = look.lineNumber;
+			int lineNum = look.lineNumber; // Sử dụng lineNumber
 			match( new Token(TokenKind.Id) );
 			match( "[" );
 			Ast.Expr.T index = parseExpr();
 			match( "]" );
 			match( new Token(TokenKind.Assign) );
 			Ast.Expr.T expr = parseExpr();
+			// Sử dụng constructor cũ
 			return new Ast.Stmt.ArrayAssign(arrayName, index, expr, lineNum);
 		}
 		else{
-			String id = look.lexeme;
-			int lineNum = look.lineNumber;
+			Token idToken = look; // Lưu token id
+			String id = idToken.lexeme;
+			int lineNum = idToken.lineNumber; // Sử dụng lineNumber
 			match( new Token(TokenKind.Id) );
 			match( new Token(TokenKind.Assign) );
 			Ast.Expr.T expr = parseExpr();
-			return new Ast.Stmt.Assign(new Ast.Expr.Id(id,lineNum), expr, lineNum);
+			// Sử dụng constructor cũ cho Id và Assign
+			Ast.Expr.Id idExpr = new Ast.Expr.Id(id, lineNum); // Dùng lineNumber
+			return new Ast.Stmt.Assign(idExpr, expr, lineNum); // Dùng lineNumber
 		}
 		error("无法解析简单语句");
 		return null;
@@ -577,13 +582,14 @@ public class Parser {
 		Ast.Expr.T expr = parseTerm();
 		while(look.kind==TokenKind.Add
 				||look.kind==TokenKind.Sub) {
-			Token temp=look;
+			Token opToken = look; // Lưu token của toán tử (+ hoặc -)
 			move();
 			Ast.Expr.T otherExpr = parseTerm();
-			if(temp.kind==TokenKind.Add) {
-				expr = new Ast.Expr.Add(expr, otherExpr, look.lineNumber);
+			// Sử dụng lineNumber từ token toán tử, quay lại dùng constructor cũ
+			if(opToken.kind==TokenKind.Add) {
+				expr = new Ast.Expr.Add(expr, otherExpr, opToken.lineNumber); // Dùng lineNumber
 			}else {
-				expr = new Ast.Expr.Sub(expr, otherExpr, look.lineNumber);
+				expr = new Ast.Expr.Sub(expr, otherExpr, opToken.lineNumber); // Dùng lineNumber
 			}
 		}
 		return expr;
@@ -637,7 +643,7 @@ public class Parser {
 			move();
 			return expr;
 		}else if( look.kind==TokenKind.Id ){
-			Token temp = look;
+			Token temp = look; // Lưu token id
 			Token ahead = lexer.lookahead(1);
 			if( ahead.kind == TokenKind.Lparen){
 				expr = parseMethodCall();
@@ -645,26 +651,29 @@ public class Parser {
 			// 数组访问: arr[i]
 			else if( ahead.kind == TokenKind.Lbracket){
 				String arrayName = look.lexeme;
-				int lineNum = look.lineNumber;
+				int lineNum = temp.lineNumber; // Sử dụng lineNumber
 				move(); // consume id
 				match("[");
 				Ast.Expr.T index = parseExpr();
 				match("]");
-				expr = new Ast.Expr.ArrayAccess(arrayName, index, lineNum);
+				// Sử dụng constructor cũ
+				expr = new Ast.Expr.ArrayAccess(arrayName, index, lineNum); // Dùng lineNumber
 			}
 			else if( ahead.kind == TokenKind.Dot){
 				String arrayName = look.lexeme;
-				int lineNum = look.lineNumber;
+				int lineNum = temp.lineNumber; // Sử dụng lineNumber
 				move(); // consume id
 				match(".");
 				if (!"length".equals(look.lexeme)) {
 					error("数组属性只支持 length");
 				}
 				match(new Token(TokenKind.Id));
-				expr = new Ast.Expr.ArrayLength(arrayName, lineNum);
+				// Sử dụng constructor cũ
+				expr = new Ast.Expr.ArrayLength(arrayName, lineNum); // Dùng lineNumber
 			}
 			else{
-				expr = new Ast.Expr.Id(look.lexeme,look.lineNumber);
+				// Sử dụng lineNumber cho constructor cũ
+				expr = new Ast.Expr.Id(look.lexeme, temp.lineNumber); // Dùng lineNumber
 				move();
 			}
 			return expr;

@@ -11,7 +11,7 @@ LemonC 是一个面向编译原理教学与实践的小型 C-like 编译器。�
 </p>
 
 ```text
-Java 8+ | Maven | JVM bytecode | 176 tests passing | 82 examples | MIT License
+Java 21 | Maven | JVM bytecode | 241 tests passing | 88 examples | MIT License
 ```
 
 ## Why LemonC
@@ -22,7 +22,7 @@ Java 8+ | Maven | JVM bytecode | 176 tests passing | 82 examples | MIT License
 | Real JVM execution | Examples compile to `.class` and run on a standard JVM |
 | Classic compiler theory | Recursive descent parsing, Visitor-based semantic analysis, backpatching, stack-machine codegen |
 | Teaching-friendly visibility | CLI can dump tokens, AST, and JVM IR |
-| Regression confidence | 82 example programs are checked against real JVM stdout |
+| Regression confidence | 88 example programs are checked against real JVM stdout |
 | Small enough to read | A compact codebase for students who want to understand a whole compiler |
 
 ## At A Glance
@@ -77,10 +77,10 @@ The same example also demonstrates constant folding, algebraic simplification, b
 
 | Category | Features |
 |---|---|
-| Types | `int`, `float`, `double`, `bool`, `void` |
-| Arrays | `int[]`, `float[]`, `double[]`, indexed access, indexed assignment, `.length` |
+| Types | `byte`, `int`, `long`, `float`, `double`, `bool`, `string`, `void` |
+| Arrays | `int[]`, `byte[]`, `long[]`, `float[]`, `double[]`, `bool[]`, `string[]`, indexed access, indexed assignment, `.length` |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, unary `-` |
-| Numeric widening | `int -> float`, `int -> double`, `float -> double` |
+| Numeric widening | `byte -> int -> long -> float -> double` |
 | Comparison | `>`, `<`, `>=`, `<=`, `==`, `!=` |
 | Boolean logic | `true`, `false`, `!`, `&&`, `||`, short-circuit control flow |
 | Control flow | `if/else`, `while`, `for`, `break`, `continue`, nested loops |
@@ -184,8 +184,8 @@ mvn test
 Current coverage:
 
 ```text
-Tests run: 176, Failures: 0, Errors: 0, Skipped: 0
-82 root examples verified by real JVM execution
+Tests run: 241, Failures: 0, Errors: 0, Skipped: 0
+88 root examples verified by real JVM execution
 ```
 
 ## More Real Examples

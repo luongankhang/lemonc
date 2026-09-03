@@ -1,41 +1,50 @@
-# LemonC 功能手册
+# LemonC Feature Manual
 
-本文档按功能维度列出 LemonC 当前支持的语言能力和编译器能力。所有“运行输出”均来自 `examples/example-output-manifest.tsv` 中的端到端 JVM 输出基线，也就是 `.lemon` 源程序经 LemonC 编译为 `.class` 后，在 JVM 上实际执行得到的结果。
+This manual provides a comprehensive specification of all language features and compiler capabilities currently implemented in LemonC. Every runtime output documented here reflects end-to-end JVM execution against real test baselines (`examples/example-output-manifest.tsv`), produced by compiling `.lemon` source files into real JVM `.class` bytecode and executing them on a standard Java Virtual Machine.
 
-## 1. 编译链路
+---
 
-LemonC 的主链路是：
+## 1. Compiler Pipeline
+
+LemonC executes a complete, classical compiler pipeline from source code to executable bytecode:
 
 ```text
 Lemon source (.lemon)
-  -> Lexer tokens
-  -> Parser AST
-  -> Semantic analysis
-  -> AST optimization
-  -> JVM IR
-  -> Jasmin assembly
-  -> JVM .class
-  -> JVM execution output
+  -> Lexical Analysis (DFA Tokenizer with SourceSpan tracking)
+  -> Syntax Analysis (LL(2) Recursive Descent Parser with Error Recovery)
+  -> Semantic Analysis (Symbol Tables, Type Checking, Control-Flow & Return Checking)
+  -> AST Optimization (Constant Folding, Algebraic Simplification, Dead Branch Removal)
+  -> JVM IR Translation (Stack-Machine IR with Backpatching)
+  -> Bytecode Generation (Worklist-based MaxStack Analysis & Jasmin IL Writer)
+  -> Jasmin Assembler (.class generation)
+  -> Standard JVM Execution
 ```
 
-命令行入口：
+### Command Line Interface
+
+Compile a source file to JVM bytecode:
 
 ```bash
 java -jar target/LemonC-0.1-beta-jar-with-dependencies.jar examples/HelloWorld.lemon
 java HelloWorld
 ```
 
-可选教学输出：
+Teaching and inspection flags:
 
 ```bash
-java -jar target/LemonC-0.1-beta-jar-with-dependencies.jar examples/ModTest.lemon --dump-tokens --dump-ast --dump-ir
+java -jar target/LemonC-0.1-beta-jar-with-dependencies.jar examples/StringByteLongArrays.lemon \
+  --dump-tokens \
+  --dump-ast \
+  --dump-ir
 ```
 
-## 2. 类与 main 方法
+---
 
-LemonC 程序以单个 `class` 为顶层单位，入口方法为 `void main()`。
+## 2. Program Structure
 
-示例：[examples/HelloWorld.lemon](../examples/HelloWorld.lemon)
+Every Lemon program consists of a single top-level `class` declaration whose name must match the source file name (without the `.lemon` extension). Execution begins at the static entrypoint method `void main()`.
+
+Example: [examples/HelloWorld.lemon](../examples/HelloWorld.lemon)
 
 ```c
 class HelloWorld {
@@ -44,7 +53,7 @@ class HelloWorld {
         int b;
         a = 15;
         b = 27;
-        printf("a=%d,b=%d,add=%d", a, b, add(a, b));
+        printf("a=%d,b=%d,add=%d\n", a, b, add(a, b));
     }
 
     int add(int x, int y) {
@@ -53,110 +62,229 @@ class HelloWorld {
 }
 ```
 
-运行输出：
+JVM Output:
 
 ```text
 a=15,b=27,add=42
 ```
 
-## 3. 基本类型
+---
 
-当前支持：
+## 3. Type System
 
-| 类型 | 用途 |
-|---|---|
-| `int` | 32 位整数 |
-| `float` | 单精度浮点数 |
-| `double` | 双精度浮点数 |
-| `bool` | 布尔值，可用于条件表达式 |
-| `void` | 无返回值方法 |
+LemonC features a static, strongly typed type system supporting 8 primitive/scalar types and 7 one-dimensional array types:
 
-示例：[examples/LanguageFeatureTest.lemon](../examples/LanguageFeatureTest.lemon)
+### 3.1. Primitive Types
+
+| Type | Keyword | Size / JVM Representation | JVM Descriptor | Description & Operations |
+|---|---|---|---|---|
+| `byte` | `byte` | 8-bit signed integer (`-128` to `127`) | `B` | Stored in 32-bit JVM operand stack slots; enforces static range validation on integer literals; promotes to `int`. |
+| `int` | `int` | 32-bit signed two's complement integer | `I` | Standard integer arithmetic (`+`, `-`, `*`, `/`, `%`, unary `-`), comparisons, bitwise checks. |
+| `long` | `long` | 64-bit signed two's complement integer | `J` | 64-bit arithmetic (`ladd`, `lsub`, `lmul`, `ldiv`, `lrem`, `lneg`), comparisons (`lcmp`), occupies 2 local variable slots. |
+| `float` | `float` | 32-bit IEEE 754 single-precision float | `F` | Floating-point arithmetic, floating comparisons (`fcmpl`/`fcmpg`) with IEEE 754 NaN handling. |
+| `double` | `double` | 64-bit IEEE 754 double-precision float | `D` | Double-precision arithmetic, comparisons (`dcmpl`/`dcmpg`), occupies 2 local variable slots. |
+| `bool` | `bool` | 1-bit logical truth value (`true`/`false`) | `I` | Boolean logic (`!`, `&&`, `||`), backpatching control-flow jumps; represented as `0` or `1` when materialized. |
+| `string` | `string` / `String` | Reference to `java.lang.String` | `Ljava/lang/String;` | String literals for formatted output and string array elements. |
+| `void` | `void` | No value | `V` | Used exclusively as the return type for methods that return no value. |
+
+### 3.2. Detailed Behavior of New Primitive Types
+
+#### `byte` (8-bit Signed Integer)
+- **Range Enforcement**: Literals assigned to `byte` variables or byte array elements are checked at compile time. Literals outside `[-128, 127]` produce compiler diagnostic `E3008 (TYPE_BYTE_RANGE)`:
+  ```c
+  byte b;
+  b = 127;   // OK
+  b = -128;  // OK
+  b = 128;   // Compile error E3008: byte literal out of range; expected -128..127, found 128
+  ```
+- **Arithmetic & Widening**: In expressions, `byte` values automatically promote to `int`, allowing full integration with standard arithmetic.
+- **Methods & I/O**: Supports declaration as parameter (`byte foo(byte x)`), return type, and printing via `printf("%d", b)`.
+
+#### `long` (64-bit Signed Integer)
+- **64-bit Range**: Supports large integer literals up to `9223372036854775807` (`Long.MAX_VALUE`) and negative bounds down to `-9223372036854775808` (`Long.MIN_VALUE`).
+- **Operators**: Supports all arithmetic (`+`, `-`, `*`, `/`, `%`, unary `-`) emitting JVM 64-bit instructions (`ladd`, `lsub`, `lmul`, `ldiv`, `lrem`, `lneg`).
+- **Comparisons**: Emits `lcmp` followed by integer conditional branches (`ifle`, `ifge`, etc.).
+- **Slot Allocation**: Requires 2 local variable slots in method frames (`.limit locals`) and 2 operand stack words.
+- **Methods & I/O**: Functions can accept and return `long`. Printed via `printf("%d", val)`.
+
+#### `string` / `String`
+- Both `string` and `String` keywords are accepted interchangeably.
+- Represents string constants such as `"Hello World\n"`.
+- Primary usage is in `printf` format strings and as elements of `string[]` arrays.
+
+---
+
+## 4. Array Types & Operations
+
+LemonC supports 1-dimensional, statically sized arrays for all major types.
+
+### 4.1. Supported Array Types
+
+| Array Type | Element Type | Declaration Syntax | JVM Type Descriptor | JVM Allocation | Load / Store Instructions |
+|---|---|---|---|---|---|
+| `int[]` | `int` | `int arr[size];` | `[I` | `newarray int` | `iaload` / `iastore` |
+| `byte[]` | `byte` | `byte arr[size];` | `[B` | `newarray byte` | `baload` / `bastore` |
+| `long[]` | `long` | `long arr[size];` | `[J` | `newarray long` | `laload` / `lastore` |
+| `float[]` | `float` | `float arr[size];` | `[F` | `newarray float` | `faload` / `fastore` |
+| `double[]` | `double` | `double arr[size];` | `[D` | `newarray double` | `daload` / `dastore` |
+| `bool[]` | `bool` | `bool arr[size];` | `[Z` | `newarray boolean` | `baload` / `bastore` |
+| `string[]` | `string` | `string arr[size];` | `[Ljava/lang/String;` | `anewarray java/lang/String` | `aaload` / `aastore` |
+
+### 4.2. Array Syntax & Rules
+
+1. **Declaration**:
+   Arrays are declared at the top of a method body with a fixed positive integer size:
+   ```c
+   int numbers[10];
+   byte rawData[16];
+   long timestamps[4];
+   float coords[3];
+   double matrix[8];
+   bool flags[2];
+   string names[5];
+   ```
+   *Note*: Array size must be a positive integer literal greater than 0.
+
+2. **Element Indexing & Access**:
+   Elements are accessed via zero-based index expressions:
+   ```c
+   int first;
+   first = numbers[0];
+   printf("%d\n", rawData[i + 1]);
+   ```
+
+3. **Element Assignment**:
+   Values can be assigned to individual array indices:
+   ```c
+   numbers[0] = 42;
+   rawData[0] = -128;
+   rawData[1] = 127;
+   timestamps[0] = 9223372036854775807;
+   flags[0] = true;
+   names[0] = "Alice";
+   names[1] = "Bob";
+   ```
+   *Note*: Assigned values must match or widen into the element type. For example, assigning `128` to a `byte[]` element causes compile error `E3008`.
+
+4. **Array Length (`.length`)**:
+   The number of elements can be retrieved using the `.length` property:
+   ```c
+   int count;
+   count = names.length;  // emits JVM 'arraylength'
+   ```
+
+5. **Passing Arrays to Methods**:
+   Arrays can be passed by reference as method parameters using `type id[]` or `type[] id`:
+   ```c
+   long sum(long values[]) {
+       int i;
+       long total;
+       total = 0;
+       for (i = 0; i < values.length; i = i + 1) {
+           total = total + values[i];
+       }
+       return total;
+   }
+   ```
+
+6. **Returning Arrays from Methods**:
+   Methods can return array references:
+   ```c
+   string[] createNames() {
+       string names[2];
+       names[0] = "Alice";
+       names[1] = "Bob";
+       return names;
+   }
+   ```
+
+7. **Whole Array Assignment Constraint**:
+   Whole arrays cannot be assigned directly (`arr1 = arr2;` is rejected with `E3001`). Arrays must be copied element-by-element.
+
+---
+
+## 5. Variable Declarations & Definite Assignment
+
+Local variables and arrays are declared at the beginning of each method before statements:
 
 ```c
-class LanguageFeatureTest {
-    float addOne(float x) {
-        return x + 1;
-    }
+void main() {
+    // Declarations first
+    int a;
+    byte b;
+    long c;
+    float f;
+    double d;
+    bool flag;
+    int arr[5];
 
-    double widen(int x) {
-        return x;
-    }
-
-    void main() {
-        int i;
-        int sum;
-        float f;
-        double d;
-        int arr[3];
-        i = 0;
-        sum = 0;
-        for (i = 0; i < 6; i = i + 1) {
-            if (i == 2) {
-                continue;
-            }
-            if (i == 5) {
-                break;
-            }
-            sum = sum + i;
-        }
-        printf("sum=%d\n", sum);
-        printf("neg=%d\n", -sum);
-        f = 1 + 2.5;
-        d = 1 + f;
-        printf("f=%f,d=%f\n", f, d);
-        f = addOne(2);
-        d = widen(7);
-        printf("call=%f,%f\n", f, d);
-        arr[0] = 1;
-        arr[1] = 2;
-        arr[2] = 3;
-        printf("arr=%d\n", arr[1]);
-    }
+    // Statements follow
+    a = 10;
+    b = 100;
+    c = 1000;
+    f = 1.5;
+    d = 2.25;
+    flag = true;
+    arr[0] = a;
 }
 ```
 
-运行输出：
+### Static Checks Performed
+- **Duplicate Declaration**: Declaring the same variable twice in a method triggers `E2003 (SEM_DUPLICATE_DECLARATION)`.
+- **Undefined Variable**: Referencing a variable that has not been declared triggers `E2001 (SEM_UNKNOWN_VARIABLE)`.
+- **Definite Assignment (Use Before Assignment)**: Variables must be assigned a value before being read. Reading an unassigned variable triggers compile error `E2001`.
+- **Branch Merging**: If an assignment occurs only inside one branch of an `if-else` without the other, the variable remains unassigned after the conditional.
+
+---
+
+## 6. Numeric Widening & Promotion
+
+LemonC supports safe, automatic numeric widening conversions following standard computer arithmetic rules:
 
 ```text
-sum=8
-neg=-8
-f=3.5,d=4.5
-call=3.0,7.0
-arr=2
+byte  ──►  int  ──►  long  ──►  float  ──►  double
 ```
 
-## 4. 变量声明与赋值
+### Conversion Matrix
 
-局部变量在方法体前部声明，之后在语句区赋值和使用。
+| Source Type | Promotes To | JVM Instruction Emitted |
+|---|---|---|
+| `byte` | `int` | Implicit (shared operand representation) |
+| `byte` / `int` | `long` | `i2l` |
+| `byte` / `int` | `float` | `i2f` |
+| `byte` / `int` | `double` | `i2d` |
+| `long` | `float` | `l2f` |
+| `long` | `double` | `l2d` |
+| `float` | `double` | `f2d` |
 
-```c
-int a;
-float f;
-double d;
-bool ok;
-a = 10;
-f = 1.5;
-d = 2.25;
-ok = true;
-```
+### Where Promotion Applies
+1. **Variable Assignment**: e.g. `double d; d = 42;` (widens `int` to `double`).
+2. **Method Arguments**: e.g. `void takeDouble(double x)` accepts `int`, `long`, or `float`.
+3. **Return Statements**: e.g. `double compute() { return 1; }`.
+4. **Array Element Stores**: e.g. `double arr[2]; arr[0] = 5;`.
+5. **Binary Arithmetic**: Binary expressions promote both operands to the wider type:
+   - `int + long` $\to$ `long`
+   - `long + float` $\to$ `float`
+   - `float + double` $\to$ `double`
+   - `byte + byte` $\to$ `int`
+6. **Comparisons**: Operands are widened to a common numeric type before comparison.
 
-语义分析会检查变量声明、重复声明、未赋值使用、赋值类型兼容性和返回类型兼容性。
+---
 
-## 5. 整数与浮点运算
+## 7. Arithmetic & Expressions
 
-支持：
+LemonC supports all standard arithmetic operations on integer and floating-point types:
 
-| 运算 | 说明 |
-|---|---|
-| `+` | 加法 |
-| `-` | 减法 |
-| `*` | 乘法 |
-| `/` | 除法 |
-| `%` | 整数取模 |
-| 一元 `-` | 负号 |
+| Operator | Name | Valid Types | JVM Instructions |
+|---|---|---|---|
+| `+` | Addition | `byte`, `int`, `long`, `float`, `double` | `iadd`, `ladd`, `fadd`, `dadd` |
+| `-` | Subtraction | `byte`, `int`, `long`, `float`, `double` | `isub`, `lsub`, `fsub`, `dsub` |
+| `*` | Multiplication | `byte`, `int`, `long`, `float`, `double` | `imul`, `lmul`, `fmul`, `dmul` |
+| `/` | Division | `byte`, `int`, `long`, `float`, `double` | `idiv`, `ldiv`, `fdiv`, `ddiv` |
+| `%` | Remainder (Mod) | `byte`, `int`, `long` | `irem`, `lrem` |
+| `-` (unary) | Negation | `byte`, `int`, `long`, `float`, `double` | `0 - x` / `lneg`, `fneg`, `dneg` |
 
-示例：[examples/ModTest.lemon](../examples/ModTest.lemon)
+Example: [examples/ModTest.lemon](../examples/ModTest.lemon)
 
 ```c
 class ModTest {
@@ -172,51 +300,29 @@ class ModTest {
 }
 ```
 
-运行输出：
+JVM Output:
 
 ```text
 a=1,b=8,c=5
 ```
 
-## 6. 数值提升
+---
 
-LemonC 支持安全的数值拓宽：
+## 8. Relational & Comparison Operations
 
-```text
-int -> float
-int -> double
-float -> double
-```
-
-适用位置包括赋值、返回值、方法实参、数组元素赋值、算术表达式和比较表达式。
-
-示例：
-
-```c
-float f;
-double d;
-f = 1 + 2.5;
-d = 1 + f;
-```
-
-运行输出见 `LanguageFeatureTest`：
+LemonC supports six relational comparison operators:
 
 ```text
-f=3.5,d=4.5
-call=3.0,7.0
+>    <    >=    <=    ==    !=
 ```
 
-## 7. 比较运算
+### Correct NaN Handling for Floats
+When comparing `float` or `double` numbers, comparisons involving `NaN` (Not-a-Number) strictly follow IEEE 754 semantics:
+- Greater-than operators (`>`, `>=`) generate `fcmpl` / `dcmpl` (which bias towards `< 0` when NaN is encountered).
+- Less-than operators (`<`, `<=`) generate `fcmpg` / `dcmpg` (which bias towards `> 0` when NaN is encountered).
+- Equality (`==`) fails on NaN, while inequality (`!=`) evaluates to true.
 
-支持：
-
-```text
->  <  >=  <=  ==  !=
-```
-
-示例：[examples/CompareTest.lemon](../examples/CompareTest.lemon)
-
-运行输出：
+Example: [examples/CompareTest.lemon](../examples/CompareTest.lemon)
 
 ```text
 10 > 20 = 0
@@ -231,42 +337,21 @@ call=3.0,7.0
 10 != 10 = 0
 ```
 
-`float`/`double` 比较会生成 JVM 浮点比较指令，并按关系运算选择 `fcmpl/fcmpg`、`dcmpl/dcmpg`，以保证 NaN 语义正确。
+---
 
-示例：[examples/NaNCompareTest.lemon](../examples/NaNCompareTest.lemon)
+## 9. Boolean Logic & Backpatching Short-Circuiting
 
-运行输出：
+Boolean expressions use classic syntax-directed translation with backpatching:
 
-```text
-flt_lt=0
-flt_lte=0
-flt_gt=0
-flt_gte=0
-flt_eq=0
-flt_neq=1
-dbl_lt=0
-dbl_lte=0
-dbl_gt=0
-dbl_gte=0
-dbl_eq=0
-dbl_neq=1
-```
+| Operator | Description | Short-Circuit Behavior |
+|---|---|---|
+| `!` | Logical NOT | Inverts the true and false exit lists. |
+| `&&` | Logical AND | If left operand is false, right operand is never evaluated. |
+| `\|\|` | Logical OR | If left operand is true, right operand is never evaluated. |
 
-## 8. 布尔表达式与短路求值
+Backpatching maintains pending jump lists (`trueList` and `falseList`) without eagerly allocating temporary registers or materializing `0`/`1` unless assigned to a variable.
 
-支持：
-
-```text
-true
-false
-!
-&&
-||
-```
-
-布尔表达式采用经典 backpatching 方式生成控制流，`&&` 与 `||` 保持短路语义。
-
-示例：[examples/BoolTest02.lemon](../examples/BoolTest02.lemon)
+Example: [examples/BoolTest02.lemon](../examples/BoolTest02.lemon)
 
 ```c
 b1 = true;
@@ -274,88 +359,55 @@ b2 = testBoolCall(false);
 b3 = !(b1) && b2 || !(b2);
 ```
 
-运行输出：
+JVM Output:
 
 ```text
 b1=1,b2=1,b3=0
 ```
 
-## 9. if / else 条件分支
+---
 
-支持普通条件分支和嵌套分支：
+## 10. Control Flow
+
+### 10.1. `if / else` Branching
 
 ```c
 if (condition) {
-    ...
+    // then block
 } else {
-    ...
+    // else block
 }
 ```
 
-`if` 条件可以是布尔变量、比较表达式、逻辑表达式或方法调用返回的 `bool`。
+The `else` block is optional. Conditions can be boolean variables, comparison expressions, logical expressions, or method calls returning `bool`.
 
-示例：[examples/DoubleCompareTest.lemon](../examples/DoubleCompareTest.lemon)
+### 10.2. `while` Loops
 
 ```c
-if (b > a) {
-    printf("if=1\n");
-} else {
-    printf("if=0\n");
+while (condition) {
+    // loop body
 }
 ```
 
-运行输出：
+Evaluates `condition` before each iteration; exits when false.
 
-```text
-lt=1
-gte=1
-eq=0
-neq=1
-if=1
-```
+### 10.3. `for` Loops
 
-## 10. while 循环
-
-支持 `while` 循环，条件表达式同 `if`。
-
-示例：[examples/Loop.lemon](../examples/Loop.lemon)
-
-运行输出：
-
-```text
-1
-2
-3
-4
-6
-7
-```
-
-## 11. for 循环
-
-支持 C 风格 `for`：
+Supports C-style 3-clause `for` loops:
 
 ```c
-for (i = 0; i < 6; i = i + 1) {
-    ...
+for (i = 0; i < 10; i = i + 1) {
+    sum = sum + i;
 }
 ```
 
-`continue` 会跳到 update 部分，再进入下一轮条件判断。
+### 10.4. `break` and `continue`
 
-示例见 `LanguageFeatureTest`。
+- `break`: Immediately exits the nearest enclosing `while` or `for` loop.
+- `continue`: Skips the remainder of the current iteration (jumping to the update clause in `for` loops or the condition test in `while` loops).
+- Using `break` or `continue` outside of a loop triggers compile error `E2005 (SEM_INVALID_SCOPE)`.
 
-运行输出：
-
-```text
-sum=8
-```
-
-## 12. break 与 continue
-
-支持在循环中使用 `break` 和 `continue`，包括嵌套循环。
-
-示例：[examples/NestedLoops.lemon](../examples/NestedLoops.lemon)
+Example: [examples/NestedLoops.lemon](../examples/NestedLoops.lemon)
 
 ```c
 while (i < 3) {
@@ -364,7 +416,6 @@ while (i < 3) {
         printf("outer continue skip %d\n", i);
         continue;
     }
-
     j = 0;
     while (j < 3) {
         j = j + 1;
@@ -377,7 +428,7 @@ while (i < 3) {
 }
 ```
 
-运行输出：
+JVM Output:
 
 ```text
   inner run i=1, j=1
@@ -387,148 +438,99 @@ outer continue skip 2
   inner break on 2
 ```
 
-## 13. 方法定义、调用与返回值
+---
 
-支持：
+## 11. Methods & Functions
 
-| 功能 | 示例 |
-|---|---|
-| 有返回值方法 | `int add(int x, int y)` |
-| `void` 方法 | `void hello()` |
-| 方法参数 | `add(a, b)` |
-| 表达式中的方法调用 | `printf("%d", add(a, b));` |
-| 丢弃返回值 | `discardInt();` |
-| 递归调用 | `fib(n - 1) + fib(n - 2)` |
-
-示例：[examples/VoidMethod.lemon](../examples/VoidMethod.lemon)
+LemonC supports static methods with parameter passing, return values, and recursion:
 
 ```c
-class VoidMethod {
-    void main() {
-        printf("before\n");
-        hello();
-        printf("after\n");
+class MethodDemo {
+    int add(int x, int y) {
+        return x + y;
     }
 
-    void hello() {
-        printf("hello from void\n");
+    void greet() {
+        printf("hello\n");
+    }
+
+    int factorial(int n) {
+        if (n <= 1) {
+            return 1;
+        }
+        return n * factorial(n - 1);
+    }
+
+    void main() {
+        greet();
+        printf("fact=%d\n", factorial(5));
     }
 }
 ```
 
-运行输出：
+### Key Semantics
+- **Return Type Checking**: Returned expressions must match or widen into the method's declared return type (`E3002`).
+- **Definite Return Validation**: Non-void methods are analyzed to verify that every execution path returns a value.
+- **Void Methods**: Void methods cannot return expressions and cannot be evaluated as values (`E2004`).
+- **Return in `main`**: Returning a value from `void main()` is disallowed.
 
-```text
-before
-hello from void
-after
-```
+---
 
-递归示例：[examples/Fib.lemon](../examples/Fib.lemon)
+## 12. Standard I/O: `printf` and `printLine`
 
-运行输出：
+LemonC provides built-in I/O methods:
 
-```text
-递归计算斐波那契数列，一年后总共有144对兔子
-循环计算斐波那契数列，一年后总共有144对兔子
-```
+### Format Specifiers in `printf`
+- `%d`: Prints integer values (`int`, `byte`, `long`) or boolean values (`1`/`0`).
+- `%f`: Prints floating-point values (`float`, `double`).
+- `\n`: Newline character.
+- `\t`: Tab character.
 
-## 14. 数组
+Compile-time checks verify that the number and types of format specifiers match the passed arguments (`E3006`).
 
-支持局部数组声明、索引访问、索引赋值和 `.length`：
-
-```c
-int values[5];
-float weights[3];
-values[0] = 1;
-printf("%d\n", values.length);
-```
-
-当前数组类型包括：
-
-```text
-int[]
-float[]
-double[]
-```
-
-示例：[examples/ArrayLengthTest.lemon](../examples/ArrayLengthTest.lemon)
-
-```c
-class ArrayLengthTest {
-    void main() {
-        int values[5];
-        float weights[3];
-        int total;
-        total = values.length + weights.length;
-        printf("values=%d,weights=%d,total=%d\n", values.length, weights.length, total);
-    }
-}
-```
-
-运行输出：
-
-```text
-values=5,weights=3,total=8
-```
-
-## 15. printf 与 printLine
-
-支持字符串字面量输出和格式化输出：
-
-```text
-%d  int/bool 输出
-%f  float/double 输出
-\n  换行
-\t  制表符
-```
-
-示例：[examples/PrintfLiteral.lemon](../examples/PrintfLiteral.lemon)
-
-运行输出：
-
-```text
-hello literal
-```
-
-示例：[examples/PrintfMixed.lemon](../examples/PrintfMixed.lemon)
+Example: [examples/PrintfMixed.lemon](../examples/PrintfMixed.lemon)
 
 ```c
 printf("i=%d, f=%f, d=%f\n", i, f, d);
 ```
 
-运行输出：
+JVM Output:
 
 ```text
 i=7, f=1.5, d=2.25
 ```
 
-## 16. 注释
+---
 
-支持单行注释：
+## 13. Comments
+
+LemonC supports both single-line and multi-line comments:
 
 ```c
-// this is a comment
+// This is a single-line comment
+
+/*
+ * This is a multi-line comment.
+ * It can span multiple lines.
+ */
 ```
 
-多行注释不是当前 Lemon 语言定义的一部分。
+---
 
-## 17. AST 优化
+## 14. AST Optimization
 
-LemonC 在语义分析之后、IR 生成之前执行 AST 优化。
+Before generating IR, LemonC executes an AST-level optimization pass ([`AstOptimizer`](file:///c:/Users/Hieu/Documents/c_compiler/lemonc/src/main/java/site/ilemon/optimizer/AstOptimizer.java)):
 
-当前优化包括：
-
-| 优化 | 示例 |
+| Optimization Technique | Example Transformation |
 |---|---|
-| 常量算术折叠 | `(2 + 3) * 4 -> 20` |
-| 常量比较折叠 | `1 < 2 -> true` |
-| 常量布尔折叠 | `true && x -> x` |
-| 代数化简 | `x * 1 -> x`, `x + 0 -> x` |
-| 常量条件分支简化 | `if (true) then else` |
-| 常量 `while(false)` 删除 | `while(false) { ... }` |
+| Arithmetic Constant Folding | `(2 + 3) * 4` $\to$ `20` |
+| Boolean Constant Folding | `(1 < 2) && true` $\to$ `true` |
+| Comparison Constant Folding | `10 >= 20` $\to$ `false` |
+| Algebraic Simplification | `x * 1` $\to$ `x`, `x + 0` $\to$ `x`, `x - 0` $\to$ `x`, `x * 0` $\to$ `0` |
+| Dead Branch Elimination | `if (true) { A } else { B }` $\to$ `A` |
+| Dead Loop Elimination | `while (false) { ... }` $\to$ deleted |
 
-示例：[examples/OptimizationTest.lemon](../examples/OptimizationTest.lemon)
+Example: [examples/OptimizationTest.lemon](../examples/OptimizationTest.lemon)
 
 ```c
 class OptimizationTest {
@@ -551,72 +553,150 @@ class OptimizationTest {
 }
 ```
 
-运行输出：
+JVM Output:
 
 ```text
 a=20,b=20
 ```
 
-## 18. 端到端 JVM 示例覆盖
+---
 
-`examples/` 根目录下的所有 `.lemon` 示例均由 `AllExamplesJvmTest` 覆盖：
+## 15. Complete Examples with New Types
 
-```text
-source .lemon
-  -> LemonC compile
-  -> Jasmin assemble
-  -> JVM run
-  -> stdout compare with examples/example-output-manifest.tsv
+### 15.1. Mixed String, Byte, and Long Arrays
+
+Source: [examples/StringByteLongArrays.lemon](../examples/StringByteLongArrays.lemon)
+
+```c
+class StringByteLongArrays {
+    int lengths(string names[], byte bytes[], long values[]) {
+        return names.length + bytes.length + values.length;
+    }
+
+    string[] makeNames() {
+        string names[2];
+        names[0] = "Alice";
+        names[1] = "Bob";
+        return names;
+    }
+
+    void main() {
+        string names[2];
+        byte bytes[2];
+        long values[2];
+        int total;
+        names[0] = "Alice";
+        names[1] = "Bob";
+        bytes[0] = -128;
+        bytes[1] = 127;
+        values[0] = 10;
+        values[1] = 20;
+        total = lengths(names, bytes, values);
+        makeNames();
+        printf("array-lengths=%d\n", total);
+    }
+}
 ```
 
-当前覆盖规模：
+JVM Output:
 
 ```text
-82 root examples
-168 automated tests
+array-lengths=6
 ```
 
-综合示例：[examples/ReliabilityCanary.lemon](../examples/ReliabilityCanary.lemon)
+### 15.2. 64-bit Long Array Computation & Runtime Verification
 
-运行输出：
+Source: [examples/LongArrayRuntime.lemon](../examples/LongArrayRuntime.lemon)
+
+```c
+class LongArrayRuntime {
+    long sum(long values[]) {
+        int i;
+        long total;
+        total = 0;
+        for (i = 0; i < values.length; i = i + 1) {
+            total = total + values[i];
+        }
+        return total;
+    }
+
+    long replaceFirst(long values[], long replacement) {
+        values[0] = replacement;
+        return values[0];
+    }
+
+    void main() {
+        long values[3];
+        long total;
+        values[0] = -9223372036854775808;
+        values[1] = 2;
+        values[2] = 3;
+        printf("first=%d\n", values[0]);
+        total = sum(values);
+        printf("sum=%d\n", total);
+        printf("replaced=%d\n", replaceFirst(values, 9223372036854775807));
+    }
+}
+```
+
+JVM Output:
 
 ```text
-start
-sum=10
-f=1.5,d=2.25
-arrays=1.25,2.5,4.5,3.5
-bool=1
-fib=8
-discard-int
-discard-double
-void-call
-loop=1
-loop=3
-end
+first=-9223372036854775808
+sum=-9223372036854775803
+replaced=9223372036854775807
 ```
 
-## 19. 当前边界
+---
 
-以下不是 bug，而是当前 Lemon 语言的设计边界：
+## 16. Compiler Diagnostics & Error Codes
 
-| 边界 | 说明 |
+LemonC includes a standardized diagnostic reporting engine ([`DiagnosticEngine`](file:///c:/Users/Hieu/Documents/c_compiler/lemonc/src/main/java/site/ilemon/diagnostic/DiagnosticEngine.java)) inspired by modern industrial compilers (Rust, Clang):
+
+| Code | Category | Name | Description |
+|---|---|---|---|
+| `E0001` | Lexical | `LEX_INVALID_INPUT` | Unrecognized characters or malformed tokens. |
+| `E1001` | Syntax | `PARSE_EXPECTED_TOKEN` | Missing expected token (e.g., `;`, `}`, `)`). |
+| `E1002` | Syntax | `PARSE_INVALID_CONSTRUCT` | Malformed grammatical construct or declaration. |
+| `E1003` | Syntax | `PARSE_INVALID_EXPRESSION` | Malformed expression syntax. |
+| `E2001` | Semantic | `SEM_UNKNOWN_VARIABLE` | Use of undeclared or unassigned variable. |
+| `E2002` | Semantic | `SEM_UNKNOWN_FUNCTION` | Call to undefined method. |
+| `E2003` | Semantic | `SEM_DUPLICATE_DECLARATION` | Redefinition of variable or method name. |
+| `E2004` | Semantic | `SEM_INVALID_SYMBOL_USAGE` | Invalid symbol usage (e.g., using a void method in an expression). |
+| `E2005` | Semantic | `SEM_INVALID_SCOPE` | `break` or `continue` outside loop body. |
+| `E3001` | Type | `TYPE_ASSIGNMENT` | Type mismatch in variable assignment. |
+| `E3002` | Type | `TYPE_RETURN` | Return expression does not match declared return type. |
+| `E3003` | Type | `TYPE_ARGUMENT` | Argument type does not match parameter type. |
+| `E3004` | Type | `TYPE_OPERATOR` | Operands incompatible with operator. |
+| `E3005` | Type | `TYPE_CONDITION` | Conditional expression is not `bool`. |
+| `E3006` | Type | `TYPE_FORMAT` | `printf` format placeholder count or type mismatch. |
+| `E3007` | Type | `TYPE_INDEX` | Array index expression is not an integer. |
+| `E3008` | Type | `TYPE_BYTE_RANGE` | Byte literal exceeds signed 8-bit range `[-128, 127]`. |
+
+---
+
+## 17. Test Suite & Verification Baseline
+
+Every change to the compiler is validated against a comprehensive automated test suite:
+
+```bash
+mvn test
+```
+
+Current Test Baseline:
+- **241 Automated Tests Passing** (0 failures, 0 errors).
+- **88 Root Example Programs** compiled to `.class` files, executed on a real JVM, and verified byte-for-byte against `examples/example-output-manifest.tsv`.
+
+---
+
+## 18. Current Language Boundaries
+
+The following limitations are deliberate architectural boundaries for LemonC as a teaching-oriented compiler:
+
+| Boundary | Description |
 |---|---|
-| 标识符不含 `_` | 当前词法定义只支持字母数字类标识符 |
-| 不支持多行注释 | 当前只定义 `//` 单行注释 |
-| 局部变量声明位于方法体前部 | 不支持任意语句位置声明变量 |
-| 无块级作用域 | `{ ... }` 不引入独立变量作用域 |
-| 无字符串变量类型 | 字符串主要用于 `printf` 字面量 |
-| 单类模型 | 当前目标是教学用小型语言，不实现完整 Java 对象系统 |
-
-## 20. 推荐阅读顺序
-
-如果用于教学展示，建议按这个顺序演示：
-
-1. `HelloWorld.lemon`：完整编译运行闭环。
-2. `ModTest.lemon`：表达式优先级与 JVM 算术指令。
-3. `BoolTest02.lemon`：布尔表达式与短路求值。
-4. `NestedLoops.lemon`：循环、`break`、`continue`。
-5. `LanguageFeatureTest.lemon`：`for`、一元负号、数值提升、方法调用、数组。
-6. `NaNCompareTest.lemon`：浮点比较语义。
-7. `OptimizationTest.lemon`：AST 优化。
-8. `ReliabilityCanary.lemon`：综合端到端回归。
+| Single-Class Model | Programs consist of one top-level class with static methods; no object instantiation (`new Object()`), inheritance, or interfaces. |
+| Variable Placement | All local variable and array declarations must appear at the top of the method body before statements. |
+| Scope Granularity | Variables are scoped to the method level (`MethodVarTable`). Sub-blocks (`{ ... }`) do not introduce independent shadowing scopes. |
+| Scalar String Variables | Scalar string variable assignments (`string s; s = "text";`) are not supported; strings are supported as literals, `printf` arguments, and `string[]` array elements. |
+| Whole Array Copies | Direct assignment of entire arrays (`a = b;`) is disallowed; element-by-element iteration is required. |

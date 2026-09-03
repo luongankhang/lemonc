@@ -19,6 +19,7 @@
 8. [各维度终态分析](#8-各维度终态分析)
 9. [仍存在的问题清单](#9-仍存在的问题清单)
 10. [后续改进建议](#10-后续改进建议)
+11. [Addendum: Extended Type System & Diagnostic Infrastructure](#11-addendum-extended-type-system--diagnostic-infrastructure)
 
 ---
 
@@ -798,4 +799,29 @@ else if (look.kind == TokenKind.Sub) {
 
 ---
 
-*本报告由 Claude Sonnet 4.6 生成，基于对项目全量源码的三轮完整阅读与分析。*
+## 11. Addendum: Extended Type System & Diagnostic Infrastructure
+
+Following the initial three review rounds, the compiler underwent major feature additions:
+
+### 11.1. Extended Primitive Types
+- **`byte` (8-bit signed integer)**: Supported across variable declarations, function parameters, and return types. Literal values assigned to `byte` are statically checked against `[-128, 127]` with error code `E3008 (TYPE_BYTE_RANGE)`. Promotes implicitly to `int`.
+- **`long` (64-bit signed integer)**: Full 64-bit integer support with literal parsing up to `9223372036854775807`, JVM instructions (`ladd`, `lsub`, `lmul`, `ldiv`, `lrem`, `lneg`, `lcmp`), and 2-slot local variable allocations.
+- **`string` / `String`**: First-class string type representation in AST and JVM bytecode (`Ljava/lang/String;`).
+
+### 11.2. Extended Array Types
+- **Array coverage expanded to all fundamental types**:
+  - `byte[]` (`[B`, `newarray byte`, `baload`, `bastore`)
+  - `long[]` (`[J`, `newarray long`, `laload`, `lastore`)
+  - `bool[]` (`[Z`, `newarray boolean`, `baload`, `bastore`)
+  - `string[]` (`[Ljava/lang/String;`, `anewarray java/lang/String`, `aaload`, `aastore`)
+  - Alongside existing `int[]`, `float[]`, and `double[]`.
+- All array types support `.length`, indexing, passing as parameters (`type arr[]`), and returning from functions (`type[] func()`).
+
+### 11.3. Additional Language Capabilities
+- **Lexer enhancements**: Multi-line comments (`/* ... */`) and identifier underscores (`_`) are fully supported.
+- **Diagnostic Engine**: Complete overhaul inspired by modern industrial compilers (Rust/Clang), including standardized error codes (`E0001` - `E9001`), terminal source snippet rendering with `^~~~` underlining, and automated fix suggestions.
+- **Test suite growth**: Expanded to **241 passing automated tests** and **88 end-to-end JVM verified root examples**.
+
+---
+
+*本报告最初由 Claude Sonnet 4.6 生成，并于后续版本演进中补充更新。*

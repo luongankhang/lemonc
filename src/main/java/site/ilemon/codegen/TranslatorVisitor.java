@@ -220,6 +220,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Istore(++index));
             emit(new Ast.Stmt.Iload(index));
             emit(new Ast.Stmt.Ldc(0));
+        } else if (operandType instanceof Ast.Type.Long) {
+            emit(new Ast.Stmt.Lcmp());
+            emit(new Ast.Stmt.Istore(++index));
+            emit(new Ast.Stmt.Iload(index));
+            emit(new Ast.Stmt.Ldc(0));
         }
 
         int trueJump;
@@ -265,7 +270,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private int allocateTemp(Ast.Type.T type) {
         int temp = ++index;
-        if (type instanceof Ast.Type.Double) {
+        if (type instanceof Ast.Type.Double || type instanceof Ast.Type.Long) {
             index++;
         }
         return temp;
@@ -275,6 +280,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.ByteArray || type instanceof Ast.Type.FloatArray
                 || type instanceof Ast.Type.DoubleArray || type instanceof Ast.Type.BoolArray) emit(new Ast.Stmt.Astore(localIndex));
         else if (type instanceof Ast.Type.Double) emit(new Ast.Stmt.Dstore(localIndex));
+        else if (type instanceof Ast.Type.Long) emit(new Ast.Stmt.Lstore(localIndex));
         else if (type instanceof Ast.Type.Float) emit(new Ast.Stmt.Fstore(localIndex));
         else emit(new Ast.Stmt.Istore(localIndex));
     }
@@ -283,12 +289,13 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.ByteArray || type instanceof Ast.Type.FloatArray
                 || type instanceof Ast.Type.DoubleArray || type instanceof Ast.Type.BoolArray) emit(new Ast.Stmt.Aload(localIndex));
         else if (type instanceof Ast.Type.Double) emit(new Ast.Stmt.Dload(localIndex));
+        else if (type instanceof Ast.Type.Long) emit(new Ast.Stmt.Lload(localIndex));
         else if (type instanceof Ast.Type.Float) emit(new Ast.Stmt.Fload(localIndex));
         else emit(new Ast.Stmt.Iload(localIndex));
     }
 
     private boolean isNumeric(Ast.Type.T type) {
-        return type instanceof Ast.Type.Int || type instanceof Ast.Type.Byte
+        return type instanceof Ast.Type.Int || type instanceof Ast.Type.Byte || type instanceof Ast.Type.Long
                 || type instanceof Ast.Type.Float || type instanceof Ast.Type.Double;
     }
 
@@ -298,6 +305,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         }
         if (left instanceof Ast.Type.Double || right instanceof Ast.Type.Double) return new Ast.Type.Double();
         if (left instanceof Ast.Type.Float || right instanceof Ast.Type.Float) return new Ast.Type.Float();
+        if (left instanceof Ast.Type.Long || right instanceof Ast.Type.Long) return new Ast.Type.Long();
         return new Ast.Type.Int();
     }
 
@@ -307,6 +315,15 @@ public class TranslatorVisitor implements ISemanticVisitor {
             this.type = new Ast.Type.Float();
         } else if ((from instanceof Ast.Type.Int || from instanceof Ast.Type.Byte) && to instanceof Ast.Type.Double) {
             emit(new Ast.Stmt.I2d());
+            this.type = new Ast.Type.Double();
+        } else if ((from instanceof Ast.Type.Int || from instanceof Ast.Type.Byte) && to instanceof Ast.Type.Long) {
+            emit(new Ast.Stmt.I2l());
+            this.type = new Ast.Type.Long();
+        } else if (from instanceof Ast.Type.Long && to instanceof Ast.Type.Float) {
+            emit(new Ast.Stmt.L2f());
+            this.type = new Ast.Type.Float();
+        } else if (from instanceof Ast.Type.Long && to instanceof Ast.Type.Double) {
+            emit(new Ast.Stmt.L2d());
             this.type = new Ast.Type.Double();
         } else if (from instanceof Ast.Type.Float && to instanceof Ast.Type.Double) {
             emit(new Ast.Stmt.F2d());
@@ -370,6 +387,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     private Ast.Type.T toCodegenType(Type.T type) {
         if (type instanceof Type.Int) return new Ast.Type.Int();
         if (type instanceof Type.Byte) return new Ast.Type.Byte();
+        if (type instanceof Type.Long) return new Ast.Type.Long();
         if (type instanceof Type.Float) return new Ast.Type.Float();
         if (type instanceof Type.Double) return new Ast.Type.Double();
         if (type instanceof Type.Bool) return new Ast.Type.Bool();
@@ -385,7 +403,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private int localSlots(Ast.Type.T type) {
-        return type instanceof Ast.Type.Double ? 2 : 1;
+        return type instanceof Ast.Type.Double || type instanceof Ast.Type.Long ? 2 : 1;
     }
 
     private boolean isSourceArrayType(Type.T type) {
@@ -475,6 +493,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Fadd());
         } else if (t.getKind() == TypeKind.DOUBLE) {
             emit(new Ast.Stmt.Dadd());
+        } else if (t.getKind() == TypeKind.LONG) {
+            emit(new Ast.Stmt.Ladd());
         } else {
             unsupportedArithmetic("+", t, obj.getLineNum());
         }
@@ -666,6 +686,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Fstore(index));
         else if (obj.getId().getType() instanceof Type.Double) {
             emit(new Ast.Stmt.Dstore(index));
+        } else if (obj.getId().getType() instanceof Type.Long) {
+            emit(new Ast.Stmt.Lstore(index));
         }
     }
 
@@ -676,6 +698,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (obj.getType() instanceof Type.Int || obj.getType() instanceof Type.Byte) {
             this.type = new Ast.Type.Int();
             emit(new Ast.Stmt.Iload(index));
+        } else if (obj.getType() instanceof Type.Long) {
+            this.type = new Ast.Type.Long();
+            emit(new Ast.Stmt.Lload(index));
         } else if (obj.getType() instanceof Type.Float) {
             this.type = new Ast.Type.Float();
             emit(new Ast.Stmt.Fload(index));
@@ -705,6 +730,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Fdiv());
         } else if (t.getKind() == TypeKind.DOUBLE) {
             emit(new Ast.Stmt.Ddiv());
+        } else if (t.getKind() == TypeKind.LONG) {
+            emit(new Ast.Stmt.Ldiv());
         } else {
             unsupportedArithmetic("/", t, obj.getLineNum());
         }
@@ -712,11 +739,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Expr.Mod obj) {
-        this.visit(obj.getLeft());
-        Ast.Type.T t = this.type;
-        this.visit(obj.getRight());
+        Ast.Type.T t = emitNumericOperands(obj.getLeft(), obj.getRight());
         if (t.getKind() == TypeKind.INT) {
             emit(new Ast.Stmt.Irem());
+        } else if (t.getKind() == TypeKind.LONG) {
+            emit(new Ast.Stmt.Lrem());
         } else {
             unsupportedArithmetic("%", t, obj.getLineNum());
         }
@@ -731,6 +758,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Fmul());
         } else if (t.getKind() == TypeKind.DOUBLE) {
             emit(new Ast.Stmt.Dmul());
+        } else if (t.getKind() == TypeKind.LONG) {
+            emit(new Ast.Stmt.Lmul());
         } else {
             unsupportedArithmetic("*", t, obj.getLineNum());
         }
@@ -741,6 +770,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (obj.getType() instanceof Type.Int) {
             emit(new Ast.Stmt.Ldc(Integer.parseInt(obj.getValue().toString())));
             this.type = new Ast.Type.Int();
+        } else if (obj.getType() instanceof Type.Long) {
+            emit(new Ast.Stmt.Ldc(java.lang.Long.parseLong(obj.getValue().toString())));
+            this.type = new Ast.Type.Long();
         } else if (obj.getType() instanceof Type.Float) {
             emit(new Ast.Stmt.Ldc(Float.parseFloat(obj.getValue().toString())));
             this.type = new Ast.Type.Float();
@@ -763,6 +795,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Fsub());
         } else if (t.getKind() == TypeKind.DOUBLE) {
             emit(new Ast.Stmt.Dsub());
+        } else if (t.getKind() == TypeKind.LONG) {
+            emit(new Ast.Stmt.Lsub());
         } else {
             unsupportedArithmetic("-", t, obj.getLineNum());
         }
@@ -792,6 +826,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
     @Override
     public void visit(Type.Byte obj) {
         this.type = new Ast.Type.Byte();
+    }
+
+    @Override
+    public void visit(Type.Long obj) {
+        this.type = new Ast.Type.Long();
     }
 
     @Override
@@ -930,6 +969,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
         this.visit(expr);
         if (this.type instanceof Ast.Type.Int || this.type instanceof Ast.Type.Byte) {
             emit(new Ast.Stmt.Printf(new Ast.Type.Int(), null));
+        } else if (this.type instanceof Ast.Type.Long) {
+            emit(new Ast.Stmt.Printf(new Ast.Type.Long(), null));
         } else if (this.type instanceof Ast.Type.Float) {
             emit(new Ast.Stmt.Printf(new Ast.Type.Float(), null));
         } else if (this.type instanceof Ast.Type.Double) {
@@ -1001,6 +1042,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (this.type.getKind() == TypeKind.INT || this.type.getKind() == TypeKind.BYTE
                 || this.type.getKind() == TypeKind.BOOL)
             emit(new Ast.Stmt.Ireturn());
+        else if (this.type.getKind() == TypeKind.LONG)
+            emit(new Ast.Stmt.Lreturn());
         else if (this.type.getKind() == TypeKind.FLOAT)
             emit(new Ast.Stmt.Freturn());
         else if (this.type.getKind() == TypeKind.DOUBLE)

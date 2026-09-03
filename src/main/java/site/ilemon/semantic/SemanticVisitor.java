@@ -160,6 +160,11 @@ public class SemanticVisitor implements ISemanticVisitor {
     }
 
     @Override
+    public void visit(Ast.Type.Long obj) {
+        this.currType = obj;
+    }
+
+    @Override
     public void visit(Ast.Stmt.Assign obj) {
         if(obj.getExpr() instanceof Ast.Expr.T){
             this.visit((Ast.Expr.T)obj.getExpr());
@@ -429,6 +434,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             this.currType = new Ast.Type.Int();
         }else if(obj.getType() instanceof Ast.Type.Float){
             this.currType = new Ast.Type.Float();
+        }else if(obj.getType() instanceof Ast.Type.Long){
+            this.currType = new Ast.Type.Long();
         }else if(obj.getType() instanceof Ast.Type.Double){
             this.currType = new Ast.Type.Double();
         }else{
@@ -824,6 +831,13 @@ public class SemanticVisitor implements ISemanticVisitor {
             return true;
         if(target.getKind() == TypeKind.DOUBLE && curr.getKind() == TypeKind.BYTE)
             return true;
+        if(target.getKind() == TypeKind.LONG
+                && (curr.getKind() == TypeKind.INT || curr.getKind() == TypeKind.BYTE))
+            return true;
+        if(target.getKind() == TypeKind.FLOAT && curr.getKind() == TypeKind.LONG)
+            return true;
+        if(target.getKind() == TypeKind.DOUBLE && curr.getKind() == TypeKind.LONG)
+            return true;
         return false;
     }
 
@@ -886,6 +900,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         if (left.getKind() == TypeKind.FLOAT || right.getKind() == TypeKind.FLOAT) {
             return new Ast.Type.Float();
         }
+        if (left.getKind() == TypeKind.LONG || right.getKind() == TypeKind.LONG) {
+            return new Ast.Type.Long();
+        }
         return new Ast.Type.Int();
     }
 
@@ -894,12 +911,13 @@ public class SemanticVisitor implements ISemanticVisitor {
             return false;
         }
         TypeKind kind = type.getKind();
-        return kind == TypeKind.INT || kind == TypeKind.BYTE
+        return kind == TypeKind.INT || kind == TypeKind.BYTE || kind == TypeKind.LONG
                 || kind == TypeKind.FLOAT || kind == TypeKind.DOUBLE;
     }
 
     private boolean isIntegerLike(Ast.Type.T type) {
-        return type != null && (type.getKind() == TypeKind.INT || type.getKind() == TypeKind.BYTE);
+        return type != null && (type.getKind() == TypeKind.INT || type.getKind() == TypeKind.BYTE
+                || type.getKind() == TypeKind.LONG);
     }
 
     private boolean isArrayType(Ast.Type.T type) {

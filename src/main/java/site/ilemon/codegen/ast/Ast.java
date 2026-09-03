@@ -95,6 +95,14 @@ public String id;
             }
         }
 
+        public static class Long extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            @Override
+            public TypeKind getKind() { return TypeKind.LONG; }
+            @Override
+            public String toString() { return "@long"; }
+        }
+
         public static class Float extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 @Override
@@ -267,6 +275,17 @@ public Label l;
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 }
 
+        public static class Ladd extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class Lsub extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class Lmul extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class Ldiv extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class Lrem extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class Lcmp extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+
+        public static class I2l extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class L2f extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+        public static class L2d extends T { public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); } }
+
 
         public static class Fadd extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
@@ -398,6 +417,12 @@ public int index;
             }
         }
 
+        public static class Lload extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            public int index;
+            public Lload(int index) { this.index = index; }
+        }
+
         public static class Fload extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 public int index;
@@ -437,6 +462,10 @@ public String name;
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 }
 
+        public static class Lreturn extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+        }
+
         public static class Istore extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 public int index;
@@ -444,6 +473,12 @@ public int index;
             public Istore(int index) {
                 this.index = index;
             }
+        }
+
+        public static class Lstore extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            public int index;
+            public Lstore(int index) { this.index = index; }
         }
 
         public static class Freturn extends T {

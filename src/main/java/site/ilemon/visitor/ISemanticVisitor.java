@@ -39,6 +39,7 @@ public interface ISemanticVisitor {
 	void visit(Ast.Type.T obj);
 	void visit(Ast.Type.Bool obj);
 	void visit(Ast.Type.Byte obj);
+	void visit(Ast.Type.Long obj);
 	void visit(Ast.Type.Float obj);
 	void visit(Ast.Type.Double obj);
 	void visit(Ast.Type.Str obj);

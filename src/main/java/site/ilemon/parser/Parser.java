@@ -216,7 +216,7 @@ public class Parser {
 	private boolean isMethodStart() {
 		return look != null && (look.kind == TokenKind.Void || look.kind == TokenKind.Int
 				|| look.kind == TokenKind.Float || look.kind == TokenKind.Double
-				|| look.kind == TokenKind.Bool || look.kind == TokenKind.Byte || look.kind == TokenKind.String);
+				|| look.kind == TokenKind.Bool || look.kind == TokenKind.Byte || look.kind == TokenKind.Long || look.kind == TokenKind.String);
 	}
 
 	private void synchronizeToMethodBoundary() {
@@ -393,7 +393,7 @@ public class Parser {
 	 */
 	private boolean isTypeToken(TokenKind kind) {
 		return kind == TokenKind.Int || kind == TokenKind.Float
-				|| kind == TokenKind.Double || kind == TokenKind.Bool || kind == TokenKind.Byte || kind == TokenKind.String;
+				|| kind == TokenKind.Double || kind == TokenKind.Bool || kind == TokenKind.Byte || kind == TokenKind.Long || kind == TokenKind.String;
 	}
 
 
@@ -422,12 +422,16 @@ public class Parser {
 			move();
 			return new Ast.Type.Byte();
 		}
+		else if(look.kind == TokenKind.Long){
+			move();
+			return new Ast.Type.Long();
+		}
 		else if(look.kind == TokenKind.String){
 			move();
 			return new Ast.Type.Str();
 		}
 		else 
-			error("expected type keyword int, float, double, bool, byte, string, or void");
+			error("expected type keyword int, float, double, bool, byte, long, string, or void");
 		return null;
 	}
 
@@ -763,7 +767,20 @@ public class Parser {
 					operand, lineNumber);
 		}else if(look.kind== Num){
 			Token numberToken = look;
-			expr = new Ast.Expr.Number(new Ast.Type.Int(),look.lexeme,look.lineNumber);
+			Ast.Type.T literalType;
+			try {
+				Integer.parseInt(look.lexeme);
+				literalType = new Ast.Type.Int();
+			} catch (NumberFormatException notInt) {
+				try {
+					Long.parseLong(look.lexeme);
+					literalType = new Ast.Type.Long();
+				} catch (NumberFormatException notLong) {
+					error("integer literal is out of range for long");
+					return null;
+				}
+			}
+			expr = new Ast.Expr.Number(literalType,look.lexeme,look.lineNumber);
 			expr.setSpan(tokenSpan(numberToken));
 			move();
 			return expr;

@@ -233,6 +233,7 @@ public class ByteCodeGenerator implements Visitor {
         return stmt instanceof Ast.Stmt.Ireturn
                 || stmt instanceof Ast.Stmt.Freturn
                 || stmt instanceof Ast.Stmt.Dreturn
+                || stmt instanceof Ast.Stmt.Lreturn
                 || stmt instanceof Ast.Stmt.Areturn;
     }
 
@@ -241,10 +242,10 @@ public class ByteCodeGenerator implements Visitor {
         if (stmt instanceof Ast.Stmt.Ldc ldc) return deltas(valueSlots(ldc.i));
         if (stmt instanceof Ast.Stmt.Iload || stmt instanceof Ast.Stmt.Fload
                 || stmt instanceof Ast.Stmt.Aload) return deltas(1);
-        if (stmt instanceof Ast.Stmt.Dload) return deltas(2);
+        if (stmt instanceof Ast.Stmt.Lload || stmt instanceof Ast.Stmt.Dload) return deltas(2);
         if (stmt instanceof Ast.Stmt.Istore || stmt instanceof Ast.Stmt.Fstore
                 || stmt instanceof Ast.Stmt.Astore) return deltas(-1);
-        if (stmt instanceof Ast.Stmt.Dstore) return deltas(-2);
+        if (stmt instanceof Ast.Stmt.Lstore || stmt instanceof Ast.Stmt.Dstore) return deltas(-2);
 
         if (stmt instanceof Ast.Stmt.Iadd || stmt instanceof Ast.Stmt.Isub
                 || stmt instanceof Ast.Stmt.Imul || stmt instanceof Ast.Stmt.Idiv
@@ -252,12 +253,19 @@ public class ByteCodeGenerator implements Visitor {
                 || stmt instanceof Ast.Stmt.Fadd || stmt instanceof Ast.Stmt.Fsub
                 || stmt instanceof Ast.Stmt.Fmul || stmt instanceof Ast.Stmt.Fdiv
                 || stmt instanceof Ast.Stmt.Fcmpl || stmt instanceof Ast.Stmt.Fcmpg) return deltas(-2, 1);
+        if (stmt instanceof Ast.Stmt.Ladd || stmt instanceof Ast.Stmt.Lsub
+                || stmt instanceof Ast.Stmt.Lmul || stmt instanceof Ast.Stmt.Ldiv
+                || stmt instanceof Ast.Stmt.Lrem) return deltas(-4, 2);
+        if (stmt instanceof Ast.Stmt.Lcmp) return deltas(-4, 1);
         if (stmt instanceof Ast.Stmt.Dadd || stmt instanceof Ast.Stmt.Dsub
                 || stmt instanceof Ast.Stmt.Dmul || stmt instanceof Ast.Stmt.Ddiv) return deltas(-4, 2);
         if (stmt instanceof Ast.Stmt.Dcmpl || stmt instanceof Ast.Stmt.Dcmpg) return deltas(-4, 1);
         if (stmt instanceof Ast.Stmt.F2d) return deltas(-1, 2);
         if (stmt instanceof Ast.Stmt.I2f) return deltas();
         if (stmt instanceof Ast.Stmt.I2d) return deltas(-1, 2);
+        if (stmt instanceof Ast.Stmt.I2l) return deltas(-1, 2);
+        if (stmt instanceof Ast.Stmt.L2f) return deltas(-2, 1);
+        if (stmt instanceof Ast.Stmt.L2d) return deltas(-2, 2);
 
         if (stmt instanceof Ast.Stmt.Ifgt) return deltas(-1);
         if (stmt instanceof Ast.Stmt.Ificmplt || stmt instanceof Ast.Stmt.Ificmpgt
@@ -266,7 +274,7 @@ public class ByteCodeGenerator implements Visitor {
 
         if (stmt instanceof Ast.Stmt.Ireturn || stmt instanceof Ast.Stmt.Freturn
                 || stmt instanceof Ast.Stmt.Areturn) return deltas(-1);
-        if (stmt instanceof Ast.Stmt.Dreturn) return deltas(-2);
+        if (stmt instanceof Ast.Stmt.Dreturn || stmt instanceof Ast.Stmt.Lreturn) return deltas(-2);
 
         if (stmt instanceof Ast.Stmt.Invokestatic call) {
             return deltas(-argumentTypeSlots(call.at), emittedReturnSlots(call.rt));
@@ -292,7 +300,7 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     private static int[] printfDeltas(Ast.Type.T type) {
-        if (type != null && type.getKind() == TypeKind.DOUBLE) {
+        if (type != null && (type.getKind() == TypeKind.DOUBLE || type.getKind() == TypeKind.LONG)) {
             return deltas(1, 1, -1, -3);
         }
         return deltas(1, -2);
@@ -323,10 +331,12 @@ public class ByteCodeGenerator implements Visitor {
         if (stmt instanceof Ast.Stmt.Fload load) return localLimit(load.index, 1);
         if (stmt instanceof Ast.Stmt.Aload load) return localLimit(load.index, 1);
         if (stmt instanceof Ast.Stmt.Dload load) return localLimit(load.index, 2);
+        if (stmt instanceof Ast.Stmt.Lload load) return localLimit(load.index, 2);
         if (stmt instanceof Ast.Stmt.Istore store) return localLimit(store.index, 1);
         if (stmt instanceof Ast.Stmt.Fstore store) return localLimit(store.index, 1);
         if (stmt instanceof Ast.Stmt.Astore store) return localLimit(store.index, 1);
         if (stmt instanceof Ast.Stmt.Dstore store) return localLimit(store.index, 2);
+        if (stmt instanceof Ast.Stmt.Lstore store) return localLimit(store.index, 2);
         return 0;
     }
 
@@ -339,13 +349,13 @@ public class ByteCodeGenerator implements Visitor {
 
     private static int emittedReturnSlots(Ast.Type.T type) {
         if (type == null || type.getKind() == TypeKind.VOID) return 0;
-        if (type != null && type.getKind() == TypeKind.DOUBLE) return 2;
+        if (type != null && (type.getKind() == TypeKind.DOUBLE || type.getKind() == TypeKind.LONG)) return 2;
         return 1;
     }
 
     private static int typeSlots(Ast.Type.T type) {
         if (type == null || type.getKind() == TypeKind.VOID) return 0;
-        if (type != null && type.getKind() == TypeKind.DOUBLE) return 2;
+        if (type != null && (type.getKind() == TypeKind.DOUBLE || type.getKind() == TypeKind.LONG)) return 2;
         return 1;
     }
 
@@ -356,6 +366,7 @@ public class ByteCodeGenerator implements Visitor {
         return switch (type.getKind()) {
             case INT, BOOL -> "I";
             case BYTE -> "B";
+            case LONG -> "J";
             case FLOAT -> "F";
             case DOUBLE -> "D";
             case VOID -> "V";
@@ -371,7 +382,7 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     private static int valueSlots(Object value) {
-        return value instanceof java.lang.Double ? 2 : 1;
+        return value instanceof java.lang.Double || value instanceof java.lang.Long ? 2 : 1;
     }
 
     private static int[] deltas(int... values) {
@@ -577,9 +588,9 @@ public class ByteCodeGenerator implements Visitor {
     @Override
     public void visit(Ast.Stmt.Ldc s) {
         // double类型需要使用ldc2_w指令
-        if (s.i instanceof java.lang.Double) {
+        if (s.i instanceof java.lang.Double || s.i instanceof java.lang.Long) {
             // 添加d后缀明确指定double类型
-            this.iwriteln("ldc2_w " + s.i + "d");
+            this.iwriteln("ldc2_w " + s.i + (s.i instanceof java.lang.Double ? "d" : ""));
         } else {
             this.iwriteln("ldc " + s.i);
         }
@@ -602,6 +613,12 @@ public class ByteCodeGenerator implements Visitor {
             this.iwriteln("dup_x2");
             this.iwriteln("pop");
             this.iwriteln("invokevirtual java/io/PrintStream/print(D)V");
+        }
+        else if( obj.exprType.getKind() == TypeKind.LONG){
+            this.iwriteln("getstatic java/lang/System/out Ljava/io/PrintStream;");
+            this.iwriteln("dup_x2");
+            this.iwriteln("pop");
+            this.iwriteln("invokevirtual java/io/PrintStream/print(J)V");
         }
         else if( obj.exprType.getKind() == TypeKind.STRING){
             this.iwriteln("getstatic java/lang/System/out Ljava/io/PrintStream;");
@@ -634,6 +651,19 @@ public class ByteCodeGenerator implements Visitor {
     public void visit(Ast.Stmt.Freturn s) {
         this.iwriteln("freturn");
     }
+
+    public void visit(Ast.Stmt.Lreturn s) { this.iwriteln("lreturn"); }
+    public void visit(Ast.Stmt.Lstore s) { this.iwriteln("lstore " + s.index); }
+    public void visit(Ast.Stmt.Lload s) { this.iwriteln("lload " + s.index); }
+    public void visit(Ast.Stmt.Ladd s) { this.iwriteln("ladd"); }
+    public void visit(Ast.Stmt.Lsub s) { this.iwriteln("lsub"); }
+    public void visit(Ast.Stmt.Lmul s) { this.iwriteln("lmul"); }
+    public void visit(Ast.Stmt.Ldiv s) { this.iwriteln("ldiv"); }
+    public void visit(Ast.Stmt.Lrem s) { this.iwriteln("lrem"); }
+    public void visit(Ast.Stmt.Lcmp s) { this.iwriteln("lcmp"); }
+    public void visit(Ast.Stmt.I2l s) { this.iwriteln("i2l"); }
+    public void visit(Ast.Stmt.L2f s) { this.iwriteln("l2f"); }
+    public void visit(Ast.Stmt.L2d s) { this.iwriteln("l2d"); }
 
     @Override
     public void visit(Ast.Stmt.Fstore s) {
@@ -708,6 +738,11 @@ public class ByteCodeGenerator implements Visitor {
     @Override
     public void visit(Ast.Type.Byte obj) {
         this.write("B");
+    }
+
+    @Override
+    public void visit(Ast.Type.Long obj) {
+        this.write("J");
     }
 
     @Override

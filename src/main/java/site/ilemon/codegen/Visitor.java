@@ -20,6 +20,15 @@ public interface Visitor {
     void visit(Ast.Stmt.Astore s);
     void visit(Ast.Stmt.Goto s);
     void visit(Ast.Stmt.Iadd s);
+    void visit(Ast.Stmt.Ladd s);
+    void visit(Ast.Stmt.Lsub s);
+    void visit(Ast.Stmt.Lmul s);
+    void visit(Ast.Stmt.Ldiv s);
+    void visit(Ast.Stmt.Lrem s);
+    void visit(Ast.Stmt.Lcmp s);
+    void visit(Ast.Stmt.I2l s);
+    void visit(Ast.Stmt.L2f s);
+    void visit(Ast.Stmt.L2d s);
     void visit(Ast.Stmt.Isub s);
     void visit(Ast.Stmt.Imul s);
     void visit(Ast.Stmt.Idiv s);
@@ -40,9 +49,12 @@ public interface Visitor {
     void visit(Ast.Stmt.Fcmpg s);
 
     void visit(Ast.Stmt.Iload s);
+    void visit(Ast.Stmt.Lload s);
     void visit(Ast.Stmt.Invokestatic s);
     void visit(Ast.Stmt.Ireturn s);
+    void visit(Ast.Stmt.Lreturn s);
     void visit(Ast.Stmt.Istore s);
+    void visit(Ast.Stmt.Lstore s);
     void visit(Ast.Stmt.LabelJ s);
     void visit(Ast.Stmt.Ldc s);
     void visit(Ast.Stmt.Printf s);
@@ -82,6 +94,7 @@ public interface Visitor {
     // Type
     void visit(Ast.Type.T obj);
     void visit(Ast.Type.Int obj);
+    void visit(Ast.Type.Long obj);
     void visit(Ast.Type.Float obj);
     void visit(Ast.Type.Double obj);
     void visit(Ast.Type.Str obj);

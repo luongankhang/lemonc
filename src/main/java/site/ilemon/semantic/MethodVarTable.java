@@ -48,10 +48,12 @@ public class MethodVarTable {
     }
 
     private SemanticException duplicate(String message, Ast.Declare.T declaration) {
-        Diagnostic diagnostic = diagnosticEngine.error("SEM002", message,
-                declaration.getSpan() == null
+        Diagnostic diagnostic = diagnosticEngine.error("SEM002")
+                .message(message)
+                .primary(declaration.getSpan() == null
                         ? SourceSpan.singlePoint(null, 0, Math.max(1, declaration.getLineNum()), 1)
-                        : declaration.getSpan(), "duplicate declaration");
+                        : declaration.getSpan(), "duplicate declaration")
+                .report();
         return new SemanticException(diagnostic);
     }
 

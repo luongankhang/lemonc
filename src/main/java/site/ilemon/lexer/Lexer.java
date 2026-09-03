@@ -481,8 +481,10 @@ public class Lexer {
             }
             result.append('^');
         }
-        Diagnostic diagnostic = diagnosticEngine.error("LEX001", result.toString(),
-                SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source");
+        Diagnostic diagnostic = diagnosticEngine.error("LEX001")
+                .message(result.toString())
+                .primary(SourceSpan.singlePoint(className, 0, lineNumber, columnNumber), "invalid source")
+                .report();
         return new LexException(diagnostic);
     }
 

@@ -15,13 +15,25 @@ public final class DiagnosticEngine {
         return report(diagnostic);
     }
 
+    public DiagnosticBuilder error(String code) {
+        return new DiagnosticBuilder(this, Severity.ERROR, code);
+    }
+
+    public DiagnosticBuilder warning(String code) {
+        return new DiagnosticBuilder(this, Severity.WARNING, code);
+    }
+
+    public DiagnosticBuilder note(String code) {
+        return new DiagnosticBuilder(this, Severity.NOTE, code);
+    }
+
     public Diagnostic report(Diagnostic diagnostic) {
         var normalized = diagnostic;
         String englishMessage = english(diagnostic.message());
         if (!englishMessage.equals(diagnostic.message())) {
             normalized = new Diagnostic(diagnostic.severity(), diagnostic.code(), englishMessage,
                     diagnostic.primarySpan(), diagnostic.primaryLabel(),
-                    diagnostic.secondaryLabels(), diagnostic.notes());
+                    diagnostic.secondaryLabels(), diagnostic.notes(), diagnostic.suggestions());
         }
         diagnostics.add(normalized);
         return normalized;

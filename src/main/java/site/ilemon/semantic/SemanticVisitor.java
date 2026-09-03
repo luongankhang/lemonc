@@ -664,8 +664,10 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     private void error(int lineNum, String msg){
         this.pass = false;
-        Diagnostic diagnostic = diagnosticEngine.error("SEM001", msg,
-                site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1), "here");
+        Diagnostic diagnostic = diagnosticEngine.error("SEM001")
+                .message(msg)
+                .primary(site.ilemon.util.SourceSpan.singlePoint(null, 0, Math.max(1, lineNum), 1), "here")
+                .report();
         if (this.collectErrors) {
             this.errors.add(diagnostic.message());
             this.errorLineNumbers.add(lineNum);

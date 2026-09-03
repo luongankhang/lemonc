@@ -14,10 +14,13 @@ public class DiagnosticEngineTest {
         var primary = SourceSpan.of("Example.lemon", 2, 5, 1, 3, 1, 6);
         var secondary = SourceSpan.singlePoint("Example.lemon", 12, 2, 1);
 
-        Diagnostic diagnostic = Diagnostic.of(Severity.ERROR, "E100", "invalid assignment", primary, "assignment")
-                .withSecondaryLabel(secondary, "declared here")
-                .withNote("the target types must match");
-        engine.report(diagnostic);
+        Diagnostic diagnostic = engine.error("E100")
+                .message("invalid assignment")
+                .primary(primary, "assignment")
+                .secondary(secondary, "declared here")
+                .note("the target types must match")
+                .suggestion(primary, "x", "use the declared target")
+                .report();
 
         assertEquals(1, engine.diagnostics().size());
         Diagnostic stored = engine.diagnostics().get(0);
@@ -26,6 +29,7 @@ public class DiagnosticEngineTest {
         assertEquals(primary, stored.primarySpan());
         assertEquals(1, stored.secondaryLabels().size());
         assertEquals(1, stored.notes().size());
+        assertEquals(1, stored.suggestions().size());
         assertTrue(engine.hasErrors());
     }
 }

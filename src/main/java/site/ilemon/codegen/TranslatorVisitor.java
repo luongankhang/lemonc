@@ -341,20 +341,20 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     /**
-     * 从索引表中安全查找变量索引，未找到时抛出内部编译错误。
+     * Safely look up a variable index from the table, throwing an internal compiler error if not found.
      */
     private int lookupIndex(String id) {
         Integer idx = this.indexTable.get(id);
         if (idx == null) {
             throw new CompilerException(
-                "[代码生成] 内部错误: 变量 '" + id + "' 未在索引表中注册");
+                "[Code Generation] Internal error: Variable '" + id + "' not registered in index table");
         }
         return idx;
     }
 
     private String typeName(Ast.Type.T type) {
         if (type == null) {
-            return "未知";
+            return "unknown";
         }
         String name = type.toString();
         return name.startsWith("@") ? name.substring(1) : name;
@@ -362,7 +362,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private void unsupportedArithmetic(String operator, Ast.Type.T type, int lineNum) {
         throw new CompilerException(String.format(
-                "[代码生成] 行 %d: 运算符 '%s' 不支持类型 %s",
+                "[Code Generation] Line %d: Operator '%s' does not support type %s",
                 lineNum, operator, typeName(type)));
     }
 
@@ -377,7 +377,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return new Ast.Type.FloatArray();
         if (type instanceof Type.DoubleArray) return new Ast.Type.DoubleArray();
         if (type instanceof Type.BoolArray) return new Ast.Type.BoolArray();
-        throw new CompilerException("[代码生成] 不支持的类型: " + type);
+        throw new CompilerException("[Code Generation] Unsupported type: " + type);
     }
 
     private int localSlots(Ast.Type.T type) {
@@ -396,7 +396,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return new Ast.Type.Float();
         if (type instanceof Type.DoubleArray) return new Ast.Type.Double();
         if (type instanceof Type.BoolArray) return new Ast.Type.Bool();
-        throw new CompilerException("[代码生成] 不是数组类型: " + type);
+        throw new CompilerException("[Code Generation] Not an array type: " + type);
     }
 
     private int arraySize(Type.T type) {
@@ -404,7 +404,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.FloatArray) return ((Type.FloatArray) type).getSize();
         if (type instanceof Type.DoubleArray) return ((Type.DoubleArray) type).getSize();
         if (type instanceof Type.BoolArray) return ((Type.BoolArray) type).getSize();
-        throw new CompilerException("[代码生成] 不是数组类型: " + type);
+        throw new CompilerException("[Code Generation] Not an array type: " + type);
     }
 
     private Ast.Declare.DeclareSingle toCodegenDeclare(Declare.DeclareSingle declareSingle) {
@@ -425,7 +425,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (isSourceArrayType(declareSingle.getType())) {
             int size = arraySize(declareSingle.getType());
             if (size <= 0) {
-                throw new CompilerException("[代码生成] 局部数组大小必须为正整数: " + declareSingle.getId());
+                throw new CompilerException("[Code Generation] Local array size must be a positive integer: " + declareSingle.getId());
             }
             emit(new Ast.Stmt.Ldc(size));
             emit(new Ast.Stmt.Newarray(arrayElementType(declareSingle.getType())));
@@ -728,8 +728,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emit(new Ast.Stmt.Ldc(java.lang.Double.parseDouble(obj.getValue().toString())));
             this.type = new Ast.Type.Double();
         } else {
-            throw new CompilerException("[代码生成] 行 " + obj.getLineNum()
-                    + ": 不支持的数字字面量类型 " + obj.getType());
+            throw new CompilerException("[Code Generation] Line " + obj.getLineNum()
+                    + ": Unsupported numeric literal type " + obj.getType());
         }
     }
 
@@ -915,7 +915,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         } else if (this.type instanceof Ast.Type.Double) {
             emit(new Ast.Stmt.Printf(new Ast.Type.Double(), null));
         } else {
-            throw new CompilerException("[代码生成] printf 不支持类型 " + typeName(this.type));
+            throw new CompilerException("[Code Generation] Printf does not support type " + typeName(this.type));
         }
     }
 
@@ -933,14 +933,14 @@ public class TranslatorVisitor implements ISemanticVisitor {
             emitPrintfString(literal.toString(), obj.getLineNum());
             literal.setLength(0);
             if (i + 1 >= format.length()) {
-                throw new CompilerException("[代码生成] printf 格式串中的 % 缺少占位符");
+                throw new CompilerException("[Code Generation] Printf format string has % without placeholder");
             }
             char placeholder = format.charAt(++i);
             if (placeholder != 'd' && placeholder != 'f') {
-                throw new CompilerException("[代码生成] printf 不支持占位符 %" + placeholder);
+                throw new CompilerException("[Code Generation] Printf does not support placeholder %" + placeholder);
             }
             if (obj.getExprs() == null || argIndex >= obj.getExprs().size()) {
-                throw new CompilerException("[代码生成] printf 参数个数不足");
+                throw new CompilerException("[Code Generation] Printf argument count insufficient");
             }
             emitPrintfValue(obj.getExprs().get(argIndex++));
         }

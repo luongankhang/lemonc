@@ -111,8 +111,7 @@ public class ByteCodeGenerator implements Visitor {
         java.util.Map<String, Integer> labels = new java.util.HashMap<String, Integer>();
         for (int i = 0; i < stmts.size(); i++) {
             Ast.Stmt.T stmt = stmts.get(i);
-            if (stmt instanceof Ast.Stmt.LabelJ) {
-                Ast.Stmt.LabelJ label = (Ast.Stmt.LabelJ) stmt;
+            if (stmt instanceof Ast.Stmt.LabelJ label) {
                 labels.put(label.label.toString(), i);
             }
         }
@@ -355,29 +354,18 @@ public class ByteCodeGenerator implements Visitor {
         if (type == null) {
             throw new CompilerException("Missing JVM type descriptor for null type");
         }
-        switch (type.getKind()) {
-            case INT:
-            case BOOL:
-                return "I";
-            case FLOAT:
-                return "F";
-            case DOUBLE:
-                return "D";
-            case VOID:
-                return "V";
-            case STRING:
-                return "Ljava/lang/String;";
-            case INT_ARRAY:
-                return "[I";
-            case FLOAT_ARRAY:
-                return "[F";
-            case DOUBLE_ARRAY:
-                return "[D";
-            case BOOL_ARRAY:
-                return "[Z";
-            default:
-                throw new CompilerException("Unsupported JVM type descriptor: " + type);
-        }
+        return switch (type.getKind()) {
+            case INT, BOOL -> "I";
+            case FLOAT -> "F";
+            case DOUBLE -> "D";
+            case VOID -> "V";
+            case STRING -> "Ljava/lang/String;";
+            case INT_ARRAY -> "[I";
+            case FLOAT_ARRAY -> "[F";
+            case DOUBLE_ARRAY -> "[D";
+            case BOOL_ARRAY -> "[Z";
+            default -> throw new CompilerException("Unsupported JVM type descriptor: " + type);
+        };
     }
 
     private static int valueSlots(Object value) {
@@ -737,18 +725,13 @@ public class ByteCodeGenerator implements Visitor {
     // ========== 数组相关指令 ==========
 
     public void visit(Ast.Stmt.Newarray s) {
-        String type;
-        if (s.elementType instanceof Ast.Type.Int) {
-            type = "int";
-        } else if (s.elementType instanceof Ast.Type.Float) {
-            type = "float";
-        } else if (s.elementType instanceof Ast.Type.Double) {
-            type = "double";
-        } else if (s.elementType instanceof Ast.Type.Bool) {
-            type = "boolean";
-        } else {
-            type = "int"; // 默认
-        }
+        String type = switch (s.elementType) {
+            case Ast.Type.Int i -> "int";
+            case Ast.Type.Float f -> "float";
+            case Ast.Type.Double d -> "double";
+            case Ast.Type.Bool b -> "boolean";
+            default -> "int"; // 默认
+        };
         this.iwriteln("newarray " + type);
     }
 

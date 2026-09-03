@@ -341,11 +341,12 @@ public class Ast {
             INT_ARRAY, FLOAT_ARRAY, DOUBLE_ARRAY, BOOL_ARRAY
         }
 
-        public static abstract class T{
+        public sealed abstract static class T{
             public abstract void accept(ISemanticVisitor v);
             public abstract TypeKind getKind();
         }
-        public static class Void extends T {
+        
+        public non-sealed static class Void extends T {
             @Override
             public TypeKind getKind() { return TypeKind.VOID; }
             @Override
@@ -358,7 +359,7 @@ public class Ast {
                 v.visit(this);
             }
         }
-        public static class Int extends T {
+        public non-sealed static class Int extends T {
             @Override
             public TypeKind getKind() { return TypeKind.INT; }
             @Override
@@ -372,7 +373,7 @@ public class Ast {
             }
         }
 
-        public static class Float extends T {
+        public non-sealed static class Float extends T {
             @Override
             public TypeKind getKind() { return TypeKind.FLOAT; }
             @Override
@@ -386,7 +387,7 @@ public class Ast {
             }
         }
 
-        public static class Double extends T {
+        public non-sealed static class Double extends T {
             @Override
             public TypeKind getKind() { return TypeKind.DOUBLE; }
             @Override
@@ -400,7 +401,7 @@ public class Ast {
             }
         }
 
-        public static class Str extends T {
+        public non-sealed static class Str extends T {
             @Override
             public TypeKind getKind() { return TypeKind.STRING; }
             @Override
@@ -414,7 +415,7 @@ public class Ast {
             }
         }
 
-        public static class Bool extends T {
+        public non-sealed static class Bool extends T {
             @Override
             public TypeKind getKind() { return TypeKind.BOOL; }
             @Override
@@ -429,7 +430,7 @@ public class Ast {
         }
 
         // 数组类型
-        public static class IntArray extends T {
+        public non-sealed static class IntArray extends T {
             private int size;
             public int getSize() { return this.size; }
             public void setSize(int size) { this.size = size; }
@@ -443,7 +444,7 @@ public class Ast {
             public void accept(ISemanticVisitor v) { v.visit(this); }
         }
 
-        public static class FloatArray extends T {
+        public non-sealed static class FloatArray extends T {
             private int size;
             public int getSize() { return this.size; }
             public void setSize(int size) { this.size = size; }
@@ -457,7 +458,7 @@ public class Ast {
             public void accept(ISemanticVisitor v) { v.visit(this); }
         }
 
-        public static class DoubleArray extends T {
+        public non-sealed static class DoubleArray extends T {
             private int size;
             public int getSize() { return this.size; }
             public void setSize(int size) { this.size = size; }
@@ -471,7 +472,7 @@ public class Ast {
             public void accept(ISemanticVisitor v) { v.visit(this); }
         }
 
-        public static class BoolArray extends T {
+        public non-sealed static class BoolArray extends T {
             private int size;
             public int getSize() { return this.size; }
             public void setSize(int size) { this.size = size; }

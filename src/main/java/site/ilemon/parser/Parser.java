@@ -558,28 +558,15 @@ public class Parser {
 			int lineNumber = look.lineNumber;
 			move();
 			Ast.Expr.T right = parseAdditiveExpr();
-			switch (operator) {
-			case ">":
-				expr = new Ast.Expr.GT(expr, right, lineNumber);
-				break;
-			case "<":
-				expr = new Ast.Expr.LT(expr, right, lineNumber);
-				break;
-			case ">=":
-				expr = new Ast.Expr.GTE(expr, right, lineNumber);
-				break;
-			case "<=":
-				expr = new Ast.Expr.LTE(expr, right, lineNumber);
-				break;
-			case "==":
-				expr = new Ast.Expr.EQ(expr, right, lineNumber);
-				break;
-			case "!=":
-				expr = new Ast.Expr.NEQ(expr, right, lineNumber);
-				break;
-			default:
-				break;
-			}
+			expr = switch (operator) {
+			case ">" -> new Ast.Expr.GT(expr, right, lineNumber);
+			case "<" -> new Ast.Expr.LT(expr, right, lineNumber);
+			case ">=" -> new Ast.Expr.GTE(expr, right, lineNumber);
+			case "<=" -> new Ast.Expr.LTE(expr, right, lineNumber);
+			case "==" -> new Ast.Expr.EQ(expr, right, lineNumber);
+			case "!=" -> new Ast.Expr.NEQ(expr, right, lineNumber);
+			default -> throw new RuntimeException("Unexpected value: " + operator);
+			};
 
 		}
 		return expr;

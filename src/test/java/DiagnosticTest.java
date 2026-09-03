@@ -1,22 +1,28 @@
 import org.junit.Test;
 import site.ilemon.ast.Ast;
+import site.ilemon.codegen.ByteCodeGenerator;
+import site.ilemon.codegen.TranslatorVisitor;
 import site.ilemon.compiler.LemonC;
 import site.ilemon.exception.LexException;
 import site.ilemon.exception.ParseException;
 import site.ilemon.lexer.Lexer;
 import site.ilemon.lexer.Token;
 import site.ilemon.lexer.TokenKind;
+import site.ilemon.optimizer.AstOptimizer;
 import site.ilemon.parser.Parser;
 import site.ilemon.semantic.SemanticVisitor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -323,6 +329,39 @@ public class DiagnosticTest {
     }
 
     @Test
+    public void testArray() throws Exception {
+        String source = "class Test {\n" +
+                "  void main() {\n" +
+                "    int arr[5];\n" +
+                "    arr[0] = 1;\n" +
+                "    printf(\"arr[0]=%d\\n\", arr[0]);\n" +
+                "  }\n" +
+                "}\n" +
+                "";
+
+        compileAndRun(source, "arr[0]=1\n");
+    }
+
+    @Test
+    public void testNestedArray() throws Exception {
+        String source = "class Test {\n" +
+                "  void main() {\n" +
+                "    int arr1[2];\n" +
+                "    int arr2[2];\n" +
+                "    arr1[0] = 1;\n" +
+                "    arr1[1] = 2;\n" +
+                "    arr2[0] = 3;\n" +
+                "    arr2[1] = 4;\n" +
+                "    printf(\"arr1[0]=%d\\n\", arr1[0]);\n" +
+                "    printf(\"arr2[1]=%d\\n\", arr2[1]);\n" +
+                "  }\n" +
+                "}\n" +
+                "";
+
+        compileAndRun(source, "arr1[0]=1\narr2[1]=4\n");
+    }
+
+    @Test
     public void lexerSkipsMultilineCommentsAndKeepsLineNumbers() throws Exception {
         File file = writeSource("Test",
                 "class Test {\n" +
@@ -391,5 +430,107 @@ public class DiagnosticTest {
         Files.write(file.toPath(), source.getBytes(StandardCharsets.UTF_8));
         file.deleteOnExit();
         return file;
+    }
+    
+    private void compileAndRun(String source, String expectedOutput) throws Exception {
+        File sourceFile = writeSource("Test", source);
+        
+        // 1. 词法分析
+        Lexer lexer = new Lexer(sourceFile);
+        assertNotNull(lexer);
+
+        // 2. 语法分析
+        Parser parser = new Parser(lexer);
+        Ast.Program.T program = parser.parse();
+        assertNotNull(program);
+
+        // 3. 语义分析
+        SemanticVisitor semantic = new SemanticVisitor();
+        semantic.visit(program);
+        assertTrue(semantic.passOrNot());
+
+        // 4. IR 翻译
+        program = new AstOptimizer().optimize(program);
+        TranslatorVisitor translator = new TranslatorVisitor();
+        translator.visit(program);
+        assertNotNull(translator.prog);
+        assertNotNull(translator.prog.mainClass);
+
+        // 5. 字节码生成
+        ByteCodeGenerator generator = new ByteCodeGenerator();
+        generator.visit(translator.prog);
+
+        // 6. 验证 .il 文件已生成
+        File ilFile = generator.getOutputFile();
+        String ilFileName = ilFile.getPath();
+        assertTrue(ilFile.exists());
+        assertTrue(ilFile.length() > 0);
+
+        // 7. Jasmin 汇编 → .class
+        assembleWithJasmin(generator.getOutputDir(), ilFileName);
+
+        File classFile = generator.getClassFile(translator.prog.mainClass.id);
+        assertTrue(classFile.exists());
+        assertTrue(classFile.length() > 0);
+
+        // 8. 运行并验证输出
+        Process process = new ProcessBuilder(javaExecutable(),
+                "-Dfile.encoding=UTF-8",
+                "-Dsun.stdout.encoding=UTF-8",
+                "-Dsun.stderr.encoding=UTF-8",
+                "-cp", generator.getOutputDir().getPath(), "Test")
+                .redirectErrorStream(true)
+                .start();
+        try {
+            if (!process.waitFor(10, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                fail("JVM 执行超时");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("等待 JVM 执行被中断");
+        }
+
+        String output = normalizeNewlines(readAll(process.getInputStream()));
+        assertEquals("JVM 退出码应为 0，输出为:\n" + output, 0, process.exitValue());
+        assertEquals("JVM 输出不符合预期",
+                normalizeNewlines(expectedOutput), output);
+    }
+    
+    private void assembleWithJasmin(File outputDir, String ilFileName) throws Exception {
+        PrintStream originalOut = System.out;
+        PrintStream originalErr = System.err;
+        ByteArrayOutputStream sink = new ByteArrayOutputStream();
+        PrintStream quiet = new PrintStream(sink, true, "UTF-8");
+        try {
+            System.setOut(quiet);
+            System.setErr(quiet);
+            jasmin.Main.main(new String[]{"-d", outputDir.getPath(), ilFileName});
+        } finally {
+            System.setOut(originalOut);
+            System.setErr(originalErr);
+            quiet.close();
+        }
+    }
+
+    private String javaExecutable() {
+        String executable = System.getProperty("os.name").toLowerCase().contains("win")
+                ? "java.exe"
+                : "java";
+        return new File(new File(System.getProperty("java.home"), "bin"), executable).getPath();
+    }
+
+    private String normalizeNewlines(String s) {
+        return s.replace("\r\n", "\n").replace("\r", "\n");
+    }
+    
+    private String readAll(InputStream inputStream) throws Exception {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[1024];
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+        return buffer.toString("UTF-8");
     }
 }

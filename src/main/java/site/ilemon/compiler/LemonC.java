@@ -5,6 +5,7 @@ import site.ilemon.codegen.ByteCodeGenerator;
 import site.ilemon.codegen.TranslatorVisitor;
 import site.ilemon.codegen.ast.Label;
 import site.ilemon.exception.CompilerException;
+import site.ilemon.exception.ParseException;
 import site.ilemon.diagnostic.Diagnostic;
 import site.ilemon.lexer.Lexer;
 import site.ilemon.lexer.Token;
@@ -57,7 +58,15 @@ public class LemonC {
 
             Lexer lexer = new Lexer(sourceFile);
             Parser parser = new Parser(lexer);
-            Ast.Program.T program = parser.parse();
+            Ast.Program.T program;
+            try {
+                program = parser.parse();
+            } catch (ParseException e) {
+                for (Diagnostic diagnostic : parser.getDiagnostics()) {
+                    err.println(formatDiagnostic(diagnostic));
+                }
+                return 1;
+            }
             if (options.dumpTokens) {
                 dumpTokens(lexer, out);
             }

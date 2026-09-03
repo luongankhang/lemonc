@@ -58,6 +58,10 @@ public class Parser {
 		return diagnosticEngine;
 	}
 
+	public java.util.List<Diagnostic> getDiagnostics() {
+		return diagnosticEngine.diagnostics();
+	}
+
 	/**
 	 * 读取下一个token
 	 */
@@ -127,7 +131,21 @@ public class Parser {
 	}
 
 	public Ast.Program.T parse() throws IOException{
-		Ast.MainClass.MainClassSingle mainClass = parseMainClass();
+		Ast.MainClass.MainClassSingle mainClass;
+		ParseException firstFailure = null;
+		try {
+			mainClass = parseMainClass();
+		} catch (ParseException failure) {
+			firstFailure = failure;
+			synchronizeTo(TokenKind.EOF);
+			mainClass = new Ast.MainClass.MainClassSingle(lexer.getClassName(), null, new ArrayList<>());
+		}
+		if (firstFailure != null) {
+			throw firstFailure;
+		}
+		if (diagnosticEngine.hasErrors()) {
+			throw new ParseException(diagnosticEngine.diagnostics().get(0));
+		}
 		Ast.Program.T programSingle = new Ast.Program.ProgramSingle(mainClass);
 		return programSingle;
 	}
@@ -146,8 +164,14 @@ public class Parser {
 		match("{");
 		ArrayList<Ast.Method.T> methods = parseMethodList();
 		mainClass = new Ast.MainClass.MainClassSingle(className,null,methods);
-		match("}");
-		match("EOF");
+		if (look.kind == TokenKind.Rbrace) {
+			match("}");
+		} else if (!diagnosticEngine.hasErrors()) {
+			expected("}");
+		}
+		if (look.kind != TokenKind.EOF && !diagnosticEngine.hasErrors()) {
+			match("EOF");
+		}
 		//System.out.println("语法分析成功");
 		return mainClass;
 	}
@@ -155,14 +179,33 @@ public class Parser {
 	// <methodList> -> <method>*
 	private ArrayList<Ast.Method.T> parseMethodList() throws IOException {
 		ArrayList<Ast.Method.T> methods = new ArrayList<>();
-		while( look.kind == TokenKind.Void ||
-				look.kind == TokenKind.Int ||
-				look.kind == TokenKind.Float||
-				look.kind == TokenKind.Double||
-				look.kind == TokenKind.Bool) {
-			methods.add(parseMethod());
+		while (isMethodStart()) {
+			try {
+				methods.add(parseMethod());
+			} catch (ParseException failure) {
+				synchronizeToMethodBoundary();
+			}
 		}
 		return methods;
+	}
+
+	private boolean isMethodStart() {
+		return look != null && (look.kind == TokenKind.Void || look.kind == TokenKind.Int
+				|| look.kind == TokenKind.Float || look.kind == TokenKind.Double
+				|| look.kind == TokenKind.Bool);
+	}
+
+	private void synchronizeToMethodBoundary() {
+		while (look != null && look.kind != TokenKind.EOF && look.kind != TokenKind.Rbrace
+				&& !isMethodStart()) {
+			move();
+		}
+	}
+
+	private void synchronizeTo(TokenKind boundary) {
+		while (look != null && look.kind != boundary) {
+			move();
+		}
 	}
 
 	
@@ -345,19 +388,32 @@ public class Parser {
 
 	private ArrayList<Ast.Stmt.T> parseStmts() throws IOException {
 		ArrayList<Ast.Stmt.T> rs = new ArrayList<>();
-		while( look.kind == TokenKind.Printf || 
-				look.kind == TokenKind.PrintLine ||
-				look.kind == TokenKind.If ||
-				look.kind == TokenKind.While ||
-				look.kind == TokenKind.For ||
-				look.kind == TokenKind.Lbrace ||
-				look.kind == TokenKind.Id ||
-				look.kind == TokenKind.Break ||
-				look.kind == TokenKind.Continue ||
-				look.kind == TokenKind.Return){
-			rs.add(parseStmt());
+		while (isStatementStart()) {
+			try {
+				rs.add(parseStmt());
+			} catch (ParseException failure) {
+				synchronizeToStatementBoundary();
+			}
 		}
 		return rs;
+	}
+
+	private boolean isStatementStart() {
+		return look != null && (look.kind == TokenKind.Printf || look.kind == TokenKind.PrintLine
+				|| look.kind == TokenKind.If || look.kind == TokenKind.While || look.kind == TokenKind.For
+				|| look.kind == TokenKind.Lbrace || look.kind == TokenKind.Id
+				|| look.kind == TokenKind.Break || look.kind == TokenKind.Continue
+				|| look.kind == TokenKind.Return);
+	}
+
+	private void synchronizeToStatementBoundary() {
+		while (look != null && look.kind != TokenKind.EOF && look.kind != TokenKind.Rbrace) {
+			if (look.kind == TokenKind.Semicolon) {
+				move();
+				return;
+			}
+			move();
+		}
 	}
 
 	private Ast.Stmt.T parseStmt() throws IOException {

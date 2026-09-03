@@ -8,16 +8,15 @@ import java.util.ArrayList;
 public class AstOptimizer {
 
     public Ast.Program.T optimize(Ast.Program.T program) {
-        if (!(program instanceof Ast.Program.ProgramSingle)) {
+        if (!(program instanceof Ast.Program.ProgramSingle single)) {
             return program;
         }
-        Ast.Program.ProgramSingle single = (Ast.Program.ProgramSingle) program;
         return new Ast.Program.ProgramSingle(optimizeMainClass(single.getMainClass()));
     }
 
     private Ast.MainClass.T optimizeMainClass(Ast.MainClass.T mainClass) {
         Ast.MainClass.MainClassSingle single = (Ast.MainClass.MainClassSingle) mainClass;
-        ArrayList<Ast.Method.T> methods = new ArrayList<Ast.Method.T>();
+        ArrayList<Ast.Method.T> methods = new ArrayList<>();
         for (Ast.Method.T method : single.getMethods()) {
             methods.add(optimizeMethod(method));
         }
@@ -33,7 +32,7 @@ public class AstOptimizer {
     }
 
     private ArrayList<Ast.Stmt.T> optimizeStatements(ArrayList<Ast.Stmt.T> statements) {
-        ArrayList<Ast.Stmt.T> result = new ArrayList<Ast.Stmt.T>();
+        ArrayList<Ast.Stmt.T> result = new ArrayList<>();
         if (statements == null) {
             return result;
         }
@@ -42,8 +41,7 @@ public class AstOptimizer {
             if (optimized == null) {
                 continue;
             }
-            if (optimized instanceof Ast.Stmt.Block) {
-                Ast.Stmt.Block block = (Ast.Stmt.Block) optimized;
+            if (optimized instanceof Ast.Stmt.Block block) {
                 if (block.getStmts().isEmpty()) {
                     continue;
                 }
@@ -57,24 +55,20 @@ public class AstOptimizer {
         if (stmt == null) {
             return null;
         }
-        if (stmt instanceof Ast.Stmt.Assign) {
-            Ast.Stmt.Assign assign = (Ast.Stmt.Assign) stmt;
+        if (stmt instanceof Ast.Stmt.Assign assign) {
             return new Ast.Stmt.Assign(assign.getId(), optimizeExpr(assign.getExpr()), assign.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.ArrayAssign) {
-            Ast.Stmt.ArrayAssign arrayAssign = (Ast.Stmt.ArrayAssign) stmt;
+        if (stmt instanceof Ast.Stmt.ArrayAssign arrayAssign) {
             Ast.Stmt.ArrayAssign optimized = new Ast.Stmt.ArrayAssign(arrayAssign.getArrayName(),
                     optimizeExpr(arrayAssign.getIndex()), optimizeExpr(arrayAssign.getExpr()),
                     arrayAssign.getLineNum());
             optimized.setElementType(arrayAssign.getElementType());
             return optimized;
         }
-        if (stmt instanceof Ast.Stmt.Block) {
-            Ast.Stmt.Block block = (Ast.Stmt.Block) stmt;
+        if (stmt instanceof Ast.Stmt.Block block) {
             return new Ast.Stmt.Block(optimizeStatements(block.getStmts()), block.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.If) {
-            Ast.Stmt.If ifStmt = (Ast.Stmt.If) stmt;
+        if (stmt instanceof Ast.Stmt.If ifStmt) {
             Ast.Expr.T condition = optimizeExpr(ifStmt.getCondition());
             Ast.Stmt.T thenStmt = optimizeStmt(ifStmt.getThenStmt());
             Ast.Stmt.T elseStmt = optimizeStmt(ifStmt.getElseStmt());
@@ -83,40 +77,35 @@ public class AstOptimizer {
                 return thenStmt;
             }
             if (Boolean.FALSE.equals(constant)) {
-                return elseStmt == null ? new Ast.Stmt.Block(new ArrayList<Ast.Stmt.T>(), ifStmt.getLineNum()) : elseStmt;
+                return elseStmt == null ? new Ast.Stmt.Block(new ArrayList<>(), ifStmt.getLineNum()) : elseStmt;
             }
             return new Ast.Stmt.If(condition, thenStmt, elseStmt, ifStmt.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.While) {
-            Ast.Stmt.While whileStmt = (Ast.Stmt.While) stmt;
+        if (stmt instanceof Ast.Stmt.While whileStmt) {
             Ast.Expr.T condition = optimizeExpr(whileStmt.getCondition());
             if (Boolean.FALSE.equals(boolValue(condition))) {
-                return new Ast.Stmt.Block(new ArrayList<Ast.Stmt.T>(), whileStmt.getLineNum());
+                return new Ast.Stmt.Block(new ArrayList<>(), whileStmt.getLineNum());
             }
             return new Ast.Stmt.While(condition, optimizeStmt(whileStmt.getBody()), whileStmt.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.For) {
-            Ast.Stmt.For forStmt = (Ast.Stmt.For) stmt;
+        if (stmt instanceof Ast.Stmt.For forStmt) {
             Ast.Stmt.T init = optimizeStmt(forStmt.getInit());
             Ast.Expr.T condition = optimizeExpr(forStmt.getCondition());
             Ast.Stmt.T update = optimizeStmt(forStmt.getUpdate());
             Ast.Stmt.T body = optimizeStmt(forStmt.getBody());
             return new Ast.Stmt.For(init, condition, update, body, forStmt.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.Return) {
-            Ast.Stmt.Return ret = (Ast.Stmt.Return) stmt;
+        if (stmt instanceof Ast.Stmt.Return ret) {
             return new Ast.Stmt.Return(optimizeExpr(ret.getExpr()), ret.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.Printf) {
-            Ast.Stmt.Printf printf = (Ast.Stmt.Printf) stmt;
-            ArrayList<Ast.Expr.T> exprs = new ArrayList<Ast.Expr.T>();
+        if (stmt instanceof Ast.Stmt.Printf printf) {
+            ArrayList<Ast.Expr.T> exprs = new ArrayList<>();
             for (Ast.Expr.T expr : printf.getExprs()) {
                 exprs.add(optimizeExpr(expr));
             }
             return new Ast.Stmt.Printf(printf.getFormat(), exprs, printf.getLineNum());
         }
-        if (stmt instanceof Ast.Stmt.Call) {
-            Ast.Stmt.Call call = (Ast.Stmt.Call) stmt;
+        if (stmt instanceof Ast.Stmt.Call call) {
             ArrayList<Ast.Expr.T> args = optimizeExprList(call.getInputParams());
             Ast.Stmt.Call optimized = new Ast.Stmt.Call(call.getName(), args, call.getLineNum());
             optimized.setReturnType(call.getReturnType());
@@ -126,7 +115,7 @@ public class AstOptimizer {
     }
 
     private ArrayList<Ast.Expr.T> optimizeExprList(ArrayList<Ast.Expr.T> exprs) {
-        ArrayList<Ast.Expr.T> result = new ArrayList<Ast.Expr.T>();
+        ArrayList<Ast.Expr.T> result = new ArrayList<>();
         if (exprs != null) {
             for (Ast.Expr.T expr : exprs) {
                 result.add(optimizeExpr(expr));

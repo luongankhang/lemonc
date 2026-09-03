@@ -3,6 +3,7 @@ package site.ilemon.ast;
 import site.ilemon.codegen.ast.Label;
 import site.ilemon.list.DoublyLinkedList;
 import site.ilemon.visitor.ISemanticVisitor;
+import site.ilemon.util.SourceSpan;
 
 import java.util.ArrayList;
 
@@ -16,10 +17,9 @@ public class Ast {
      */
     public static class Program{
         public static abstract class T{
-            // Thêm SourceSpan
-            private site.ilemon.util.SourceSpan span;
-            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
-            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
+            private SourceSpan span;
+            public SourceSpan getSpan() { return this.span; }
+            public void setSpan(SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class ProgramSingle extends T{
@@ -43,10 +43,9 @@ public class Ast {
      */
     public static class MainClass{
         public static abstract class T{
-            // Thêm SourceSpan
-            private site.ilemon.util.SourceSpan span;
-            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
-            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
+            private SourceSpan span;
+            public SourceSpan getSpan() { return this.span; }
+            public void setSpan(SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class MainClassSingle extends T {
@@ -64,6 +63,10 @@ public class Ast {
                 this.classId = classId;
                 this.fields = null;
                 this.methods = methods;
+            }
+
+            public MainClassSingle(String classId, ArrayList<Ast.Method.T> methods) {
+                this(classId, null, methods);
             }
 
             @Override
@@ -85,10 +88,9 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
-            // Thêm SourceSpan
-            private site.ilemon.util.SourceSpan span;
-            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
-            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
+            private SourceSpan span;
+            public SourceSpan getSpan() { return this.span; }
+            public void setSpan(SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
 
@@ -325,10 +327,9 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
-            // Thêm SourceSpan
-            private site.ilemon.util.SourceSpan span;
-            public site.ilemon.util.SourceSpan getSpan() { return this.span; }
-            public void setSpan(site.ilemon.util.SourceSpan span) { this.span = span; }
+            private SourceSpan span;
+            public SourceSpan getSpan() { return this.span; }
+            public void setSpan(SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
         public static class DeclareSingle extends T {
@@ -343,6 +344,11 @@ public class Ast {
                 this.type = type;
                 this.id = id;
                 this.setLineNum(lineNum);
+            }
+
+            public DeclareSingle(Type.T type, String id) {
+                this.type = type;
+                this.id = id;
             }
 
             @Override
@@ -997,6 +1003,9 @@ public class Ast {
             private int lineNum;
             public int getLineNum() { return this.lineNum; }
             public void setLineNum(int lineNum) { this.lineNum = lineNum; }
+            private SourceSpan span;
+            public SourceSpan getSpan() { return this.span; }
+            public void setSpan(SourceSpan span) { this.span = span; }
             public abstract void accept(ISemanticVisitor v);
         }
 
@@ -1032,6 +1041,14 @@ public class Ast {
                 this.stms = stms;
                 this.retExp = retExp;
                 this.setLineNum(lineNum);
+            }
+
+            public MethodSingle(Ast.Type.T retType, String id, String classId,
+                                ArrayList<Declare.T> formals,
+                                ArrayList<Declare.T> locals,
+                                ArrayList<Stmt.T> stms,
+                                Ast.Stmt.T retExp, int lineNum, int index) {
+                this(retType, id, formals, locals, stms, retExp, lineNum);
             }
 
             @Override

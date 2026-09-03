@@ -22,16 +22,15 @@ public final class AstPrinter {
 
     private void program(Ast.Program.T program) {
         line(0, "Program");
-        if (program instanceof Ast.Program.ProgramSingle) {
-            mainClass(((Ast.Program.ProgramSingle) program).getMainClass(), 1);
+        if (program instanceof Ast.Program.ProgramSingle node) {
+            mainClass(node.getMainClass(), 1);
         } else {
             line(1, nodeName(program));
         }
     }
 
     private void mainClass(Ast.MainClass.T mainClass, int depth) {
-        if (mainClass instanceof Ast.MainClass.MainClassSingle) {
-            Ast.MainClass.MainClassSingle node = (Ast.MainClass.MainClassSingle) mainClass;
+        if (mainClass instanceof Ast.MainClass.MainClassSingle node) {
             line(depth, "Class " + node.getClassId());
             if (node.getMethods() != null) {
                 for (Ast.Method.T method : node.getMethods()) {
@@ -44,8 +43,7 @@ public final class AstPrinter {
     }
 
     private void method(Ast.Method.T method, int depth) {
-        if (method instanceof Ast.Method.MethodSingle) {
-            Ast.Method.MethodSingle node = (Ast.Method.MethodSingle) method;
+        if (method instanceof Ast.Method.MethodSingle node) {
             line(depth, "Method " + node.getId() + " : " + type(node.getRetType()));
             declarations("Params", node.getFormals(), depth + 1);
             declarations("Locals", node.getLocals(), depth + 1);
@@ -69,8 +67,7 @@ public final class AstPrinter {
             return;
         }
         for (Ast.Declare.T declaration : declarations) {
-            if (declaration instanceof Ast.Declare.DeclareSingle) {
-                Ast.Declare.DeclareSingle node = (Ast.Declare.DeclareSingle) declaration;
+            if (declaration instanceof Ast.Declare.DeclareSingle node) {
                 line(depth + 1, type(node.getType()) + " " + node.getId());
             } else {
                 line(depth + 1, nodeName(declaration));
@@ -79,24 +76,21 @@ public final class AstPrinter {
     }
 
     private void stmt(Ast.Stmt.T stmt, int depth) {
-        if (stmt instanceof Ast.Stmt.Assign) {
-            Ast.Stmt.Assign node = (Ast.Stmt.Assign) stmt;
+        if (stmt instanceof Ast.Stmt.Assign node) {
             line(depth, "Assign " + node.getId().getId());
             expr(node.getExpr(), depth + 1);
-        } else if (stmt instanceof Ast.Stmt.ArrayAssign) {
-            Ast.Stmt.ArrayAssign node = (Ast.Stmt.ArrayAssign) stmt;
+        } else if (stmt instanceof Ast.Stmt.ArrayAssign node) {
             line(depth, "ArrayAssign " + node.getArrayName());
             line(depth + 1, "Index");
             expr(node.getIndex(), depth + 2);
             line(depth + 1, "Value");
             expr(node.getExpr(), depth + 2);
-        } else if (stmt instanceof Ast.Stmt.Block) {
+        } else if (stmt instanceof Ast.Stmt.Block node) {
             line(depth, "Block");
-            for (Ast.Stmt.T child : ((Ast.Stmt.Block) stmt).getStmts()) {
+            for (Ast.Stmt.T child : node.getStmts()) {
                 stmt(child, depth + 1);
             }
-        } else if (stmt instanceof Ast.Stmt.If) {
-            Ast.Stmt.If node = (Ast.Stmt.If) stmt;
+        } else if (stmt instanceof Ast.Stmt.If node) {
             line(depth, "If");
             line(depth + 1, "Condition");
             expr(node.getCondition(), depth + 2);
@@ -106,8 +100,7 @@ public final class AstPrinter {
                 line(depth + 1, "Else");
                 stmt(node.getElseStmt(), depth + 2);
             }
-        } else if (stmt instanceof Ast.Stmt.While) {
-            Ast.Stmt.While node = (Ast.Stmt.While) stmt;
+        } else if (stmt instanceof Ast.Stmt.While node) {
             line(depth, "While");
             line(depth + 1, "Condition");
             expr(node.getCondition(), depth + 2);

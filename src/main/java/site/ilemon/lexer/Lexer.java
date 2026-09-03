@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,11 +20,11 @@ public class Lexer {
     private int position = 0;
     private int line = 1;
     private int column = 1;
-    public List<Token> tokens = new ArrayList<Token>();  // public for test compatibility
+    public List<Token> tokens = new ArrayList<>();  // public for test compatibility
     private int tokenIndex = 0;
     private final String className;
 
-    private static final Map<String, TokenKind> KEYWORDS = new HashMap<String, TokenKind>();
+    private static final Map<String, TokenKind> KEYWORDS = new HashMap<>();
 
     static {
         KEYWORDS.put("class", TokenKind.Class);
@@ -49,7 +50,7 @@ public class Lexer {
 
     public Lexer(File f) throws IOException {
         this.className = f.getName().substring(0, f.getName().lastIndexOf("."));
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF-8"))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             int c;
             while ((c = reader.read()) != -1) {
@@ -281,12 +282,8 @@ public class Lexer {
         tokenStartOffset = position;
 
         if (position >= source.length()) {
-            SourceSpan eofSpan = new SourceSpan(className, position, position, source);
-            Token eofToken = new Token(TokenKind.EOF, "EOF", eofSpan);
-            // Manually set the line/column to match the lexer's current state
-            eofToken.lineNumber = line;
-            eofToken.columnNumber = column;
-            return eofToken;
+            return new Token(TokenKind.EOF, "EOF",
+                    SourceSpan.of(className, position, position, line, column, line, column));
         }
 
         LexerState state = LexerState.START;
@@ -319,12 +316,8 @@ public class Lexer {
         }
 
         int endOffset = position;
-        SourceSpan span = new SourceSpan(className, tokenStartOffset, endOffset, source);
-        Token token = makeToken(state, lexeme.toString(), span);
-        // Override the line/column with the values captured at the start of token recognition
-        token.lineNumber = startLine;
-        token.columnNumber = startColumn;
-        return token;
+        return makeToken(state, lexeme.toString(),
+                SourceSpan.of(className, tokenStartOffset, endOffset, startLine, startColumn, line, column));
     }
     
     private TokenKind getTokenKindForState(LexerState state, String lexeme) {

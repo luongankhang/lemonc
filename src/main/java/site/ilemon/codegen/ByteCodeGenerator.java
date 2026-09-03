@@ -108,7 +108,7 @@ public class ByteCodeGenerator implements Visitor {
             return 0;
         }
 
-        java.util.Map<String, Integer> labels = new java.util.HashMap<String, Integer>();
+        java.util.Map<String, Integer> labels = new java.util.HashMap<>();
         for (int i = 0; i < stmts.size(); i++) {
             Ast.Stmt.T stmt = stmts.get(i);
             if (stmt instanceof Ast.Stmt.LabelJ label) {
@@ -118,7 +118,7 @@ public class ByteCodeGenerator implements Visitor {
 
         int[] inHeights = new int[stmts.size()];
         java.util.Arrays.fill(inHeights, -1);
-        java.util.ArrayDeque<Integer> worklist = new java.util.ArrayDeque<Integer>();
+        java.util.ArrayDeque<Integer> worklist = new java.util.ArrayDeque<>();
         inHeights[0] = 0;
         worklist.add(0);
 
@@ -181,9 +181,9 @@ public class ByteCodeGenerator implements Visitor {
 
     private static java.util.List<Integer> successors(Ast.Stmt.T stmt, int index, int size,
                                                       java.util.Map<String, Integer> labels) {
-        java.util.ArrayList<Integer> result = new java.util.ArrayList<Integer>(2);
-        if (stmt instanceof Ast.Stmt.Goto) {
-            result.add(labelIndex(((Ast.Stmt.Goto) stmt).l, labels));
+        java.util.ArrayList<Integer> result = new java.util.ArrayList<>(2);
+        if (stmt instanceof Ast.Stmt.Goto gotoStmt) {
+            result.add(labelIndex(gotoStmt.l, labels));
             return result;
         }
         if (isReturn(stmt)) {
@@ -218,13 +218,13 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     private static site.ilemon.codegen.ast.Label branchLabel(Ast.Stmt.T stmt) {
-        if (stmt instanceof Ast.Stmt.Ifgt) return ((Ast.Stmt.Ifgt) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmplt) return ((Ast.Stmt.Ificmplt) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmpgt) return ((Ast.Stmt.Ificmpgt) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmpge) return ((Ast.Stmt.Ificmpge) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmple) return ((Ast.Stmt.Ificmple) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmpeq) return ((Ast.Stmt.Ificmpeq) stmt).l;
-        if (stmt instanceof Ast.Stmt.Ificmpne) return ((Ast.Stmt.Ificmpne) stmt).l;
+        if (stmt instanceof Ast.Stmt.Ifgt branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmplt branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmpgt branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmpge branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmple branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmpeq branch) return branch.l;
+        if (stmt instanceof Ast.Stmt.Ificmpne branch) return branch.l;
         throw new CompilerException("Internal error: not a conditional branch "
                 + stmt.getClass().getSimpleName());
     }
@@ -238,7 +238,7 @@ public class ByteCodeGenerator implements Visitor {
 
     private static int[] stackDeltas(Ast.Stmt.T stmt) {
         if (stmt instanceof Ast.Stmt.LabelJ || stmt instanceof Ast.Stmt.Goto) return deltas();
-        if (stmt instanceof Ast.Stmt.Ldc) return deltas(valueSlots(((Ast.Stmt.Ldc) stmt).i));
+        if (stmt instanceof Ast.Stmt.Ldc ldc) return deltas(valueSlots(ldc.i));
         if (stmt instanceof Ast.Stmt.Iload || stmt instanceof Ast.Stmt.Fload
                 || stmt instanceof Ast.Stmt.Aload) return deltas(1);
         if (stmt instanceof Ast.Stmt.Dload) return deltas(2);
@@ -268,12 +268,11 @@ public class ByteCodeGenerator implements Visitor {
                 || stmt instanceof Ast.Stmt.Areturn) return deltas(-1);
         if (stmt instanceof Ast.Stmt.Dreturn) return deltas(-2);
 
-        if (stmt instanceof Ast.Stmt.Invokestatic) {
-            Ast.Stmt.Invokestatic call = (Ast.Stmt.Invokestatic) stmt;
+        if (stmt instanceof Ast.Stmt.Invokestatic call) {
             return deltas(-argumentTypeSlots(call.at), emittedReturnSlots(call.rt));
         }
-        if (stmt instanceof Ast.Stmt.Printf) {
-            return printfDeltas(((Ast.Stmt.Printf) stmt).exprType);
+        if (stmt instanceof Ast.Stmt.Printf printf) {
+            return printfDeltas(printf.exprType);
         }
         if (stmt instanceof Ast.Stmt.PrintLine) return deltas(1, -2);
         if (stmt instanceof Ast.Stmt.Pop) return deltas(-1);
@@ -320,14 +319,14 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     private static int localLimit(Ast.Stmt.T stmt) {
-        if (stmt instanceof Ast.Stmt.Iload) return localLimit(((Ast.Stmt.Iload) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Fload) return localLimit(((Ast.Stmt.Fload) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Aload) return localLimit(((Ast.Stmt.Aload) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Dload) return localLimit(((Ast.Stmt.Dload) stmt).index, 2);
-        if (stmt instanceof Ast.Stmt.Istore) return localLimit(((Ast.Stmt.Istore) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Fstore) return localLimit(((Ast.Stmt.Fstore) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Astore) return localLimit(((Ast.Stmt.Astore) stmt).index, 1);
-        if (stmt instanceof Ast.Stmt.Dstore) return localLimit(((Ast.Stmt.Dstore) stmt).index, 2);
+        if (stmt instanceof Ast.Stmt.Iload load) return localLimit(load.index, 1);
+        if (stmt instanceof Ast.Stmt.Fload load) return localLimit(load.index, 1);
+        if (stmt instanceof Ast.Stmt.Aload load) return localLimit(load.index, 1);
+        if (stmt instanceof Ast.Stmt.Dload load) return localLimit(load.index, 2);
+        if (stmt instanceof Ast.Stmt.Istore store) return localLimit(store.index, 1);
+        if (stmt instanceof Ast.Stmt.Fstore store) return localLimit(store.index, 1);
+        if (stmt instanceof Ast.Stmt.Astore store) return localLimit(store.index, 1);
+        if (stmt instanceof Ast.Stmt.Dstore store) return localLimit(store.index, 2);
         return 0;
     }
 

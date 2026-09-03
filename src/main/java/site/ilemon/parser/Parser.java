@@ -86,6 +86,10 @@ public class Parser {
 		throw new ParseException(formatError(message + "，当前 token 为 '" + look.lexeme + "'"));
 	}
 
+	private site.ilemon.util.SourceSpan tokenSpan(Token token) {
+		return token == null ? null : token.getSpan();
+	}
+
 	/**
 	 * 语法分析入口
 	 * @return Program
@@ -136,7 +140,7 @@ public class Parser {
 
 	// <methodList> -> <method>*
 	private ArrayList<Ast.Method.T> parseMethodList() throws IOException {
-		ArrayList<Ast.Method.T> methods = new ArrayList<Ast.Method.T>();
+		ArrayList<Ast.Method.T> methods = new ArrayList<>();
 		while( look.kind == TokenKind.Void ||
 				look.kind == TokenKind.Int ||
 				look.kind == TokenKind.Float||
@@ -153,6 +157,7 @@ public class Parser {
 		Ast.Type.T t = parseType();
 		String methodName = look.lexeme;
 		int lineNumber = look.lineNumber;
+		Token nameToken = look;
 		move();
 		match("(");
 			ArrayList<Ast.Declare.T> inputParams = parseInputParams();
@@ -161,18 +166,21 @@ public class Parser {
 		ArrayList<Ast.Declare.T> localParams = parseVarDeclares();
 		ArrayList<Ast.Stmt.T> stmts = parseStmts();
 		match("}");
+		Ast.Stmt.T stmt = stmts.isEmpty() ? null : stmts.get(stmts.size()-1);
+		Ast.Method.MethodSingle method = new Ast.Method.MethodSingle(t,methodName,inputParams,localParams,stmts,stmt,lineNumber);
+		method.setSpan(tokenSpan(nameToken));
 		if( !methodName.equals("main")){
-			Ast.Stmt.T stmt = stmts.isEmpty() ? null : stmts.get(stmts.size()-1);
-			return new Ast.Method.MethodSingle(t,methodName,inputParams,localParams,stmts,stmt,lineNumber);
+			return method;
 		}else{
-			return new Ast.Method.MethodSingle(t,methodName,inputParams,localParams,stmts,null,lineNumber);
+			method.setRetExp(null);
+			return method;
 		}
 
 	}
 
 	// <varDeclares> -> <varDeclare>*
 	private ArrayList<Ast.Declare.T> parseVarDeclares() throws IOException{
-		ArrayList<Ast.Declare.T> rs = new ArrayList<Ast.Declare.T>();
+		ArrayList<Ast.Declare.T> rs = new ArrayList<>();
 		while(isVarDeclarationStart()){
 			rs.add(parseDeclare());
 		}
@@ -256,7 +264,7 @@ public class Parser {
 
 	// <inputparams> -> <formalParam> ("," <formalParam>)*
 	private ArrayList<Ast.Declare.T> parseInputParams() throws IOException {
-		ArrayList<Ast.Declare.T> rs = new ArrayList<Ast.Declare.T>();
+		ArrayList<Ast.Declare.T> rs = new ArrayList<>();
 		if( isTypeToken(look.kind) ){
 			rs.add(parseFormalParam());
 			while(look.kind == TokenKind.Comma ){
@@ -320,9 +328,9 @@ public class Parser {
 			error("期望类型关键字 int、float、double、bool 或 void");
 		return null;
 	}
-	
+
 	private ArrayList<Ast.Stmt.T> parseStmts() throws IOException {
-		ArrayList<Ast.Stmt.T> rs = new ArrayList<Ast.Stmt.T>();
+		ArrayList<Ast.Stmt.T> rs = new ArrayList<>();
 		while( look.kind == TokenKind.Printf || 
 				look.kind == TokenKind.PrintLine ||
 				look.kind == TokenKind.If ||
@@ -350,7 +358,7 @@ public class Parser {
 			String format = look.lexeme;
 			int lineNumber = look.lineNumber;
 			match(new Token(TokenKind.String));
-			ArrayList<Ast.Expr.T> exprs = new ArrayList<Ast.Expr.T>();
+			ArrayList<Ast.Expr.T> exprs = new ArrayList<>();
 			while( look.kind == TokenKind.Comma ){
 				match(new Token(TokenKind.Comma));
 				exprs.add(parseExpr());
@@ -718,7 +726,7 @@ public class Parser {
 		move();
 		match("(");
 		ArrayList<Ast.Expr.T> args = null;
-		args = new ArrayList<Ast.Expr.T>();
+		args = new ArrayList<>();
 		ahead = lexer.lookahead(1);
 		if( look.kind == TokenKind.Rparen){
 

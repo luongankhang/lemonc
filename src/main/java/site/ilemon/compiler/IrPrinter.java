@@ -23,8 +23,7 @@ public final class IrPrinter {
 
     private void program(Ast.Program.T program) {
         line(0, "IR Program");
-        if (program instanceof Ast.Program.ProgramSingle) {
-            Ast.Program.ProgramSingle node = (Ast.Program.ProgramSingle) program;
+        if (program instanceof Ast.Program.ProgramSingle node) {
             mainClass(node.mainClass, 1);
         } else {
             line(1, nodeName(program));

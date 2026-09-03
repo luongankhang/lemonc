@@ -32,7 +32,7 @@ public class AllExamplesJvmTest {
         TreeSet<String> examples = listRootExamples();
 
         assertEquals("Every root example must have one manifest entry",
-                examples, new TreeSet<String>(expectedOutputs.keySet()));
+                examples, new TreeSet<>(expectedOutputs.keySet()));
 
         for (String example : examples) {
             String output = compileAndRun(example);
@@ -59,7 +59,7 @@ public class AllExamplesJvmTest {
 
     private TreeSet<String> listRootExamples() {
         File[] files = new File("examples").listFiles((dir, name) -> name.endsWith(".lemon"));
-        TreeSet<String> examples = new TreeSet<String>();
+        TreeSet<String> examples = new TreeSet<>();
         if (files != null) {
             for (File file : files) {
                 String name = file.getName();

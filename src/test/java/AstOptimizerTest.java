@@ -77,15 +77,15 @@ public class AstOptimizerTest {
     }
 
     private Ast.Stmt.T optimizeStmt(Ast.Stmt.T stmt) {
-        ArrayList<Ast.Stmt.T> statements = new ArrayList<Ast.Stmt.T>();
+        ArrayList<Ast.Stmt.T> statements = new ArrayList<>();
         statements.add(stmt);
         Ast.Method.MethodSingle method = new Ast.Method.MethodSingle(new Ast.Type.Void(), "main",
-                new ArrayList<Ast.Declare.T>(), new ArrayList<Ast.Declare.T>(),
+                new ArrayList<>(), new ArrayList<>(),
                 statements, null, 1);
-        ArrayList<Ast.Method.T> methods = new ArrayList<Ast.Method.T>();
+        ArrayList<Ast.Method.T> methods = new ArrayList<>();
         methods.add(method);
         Ast.Program.T program = new Ast.Program.ProgramSingle(
-                new Ast.MainClass.MainClassSingle("Test", new ArrayList<Ast.Declare.T>(), methods));
+                new Ast.MainClass.MainClassSingle("Test", new ArrayList<>(), methods));
         Ast.Program.ProgramSingle optimizedProgram =
                 (Ast.Program.ProgramSingle) new AstOptimizer().optimize(program);
         Ast.MainClass.MainClassSingle mainClass =
@@ -100,6 +100,6 @@ public class AstOptimizerTest {
     }
 
     private Ast.Expr.Call call(String name, Ast.Type.T returnType) {
-        return new Ast.Expr.Call(name, new ArrayList<Ast.Expr.T>(), 1, returnType);
+        return new Ast.Expr.Call(name, new ArrayList<>(), 1, returnType);
     }
 }

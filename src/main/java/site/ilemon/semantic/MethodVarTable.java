@@ -10,10 +10,10 @@ import site.ilemon.exception.SemanticException;
  * Method-level variable table.
  */
 public class MethodVarTable {
-    private HashMap<String, Symbol> table;
+    private final HashMap<String, Symbol> table;
 
     public MethodVarTable() {
-        this.table = new HashMap<String, Symbol>();
+        this.table = new HashMap<>();
     }
 
     public void put(List<Ast.Declare.T> formals, List<Ast.Declare.T> locals) {

@@ -35,9 +35,9 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     private final boolean collectErrors;
 
-    private final ArrayList<String> errors = new ArrayList<String>();
+    private final ArrayList<String> errors = new ArrayList<>();
 
-    private final ArrayList<Integer> errorLineNumbers = new ArrayList<Integer>();
+    private final ArrayList<Integer> errorLineNumbers = new ArrayList<>();
 
     private Ast.Type.T currType;
 
@@ -62,9 +62,9 @@ public class SemanticVisitor implements ISemanticVisitor {
     private SemanticVisitor(boolean collectErrors){
 
         this.collectErrors = collectErrors;
-        this.methodVarTable = new HashMap<String,MethodVarTable>();
-        this.methodMap = new HashMap<String, Ast.Method.MethodSingle>();
-        this.methodNameRetTypeMap = new HashMap<String, Ast.Type.T>();
+        this.methodVarTable = new HashMap<>();
+        this.methodMap = new HashMap<>();
+        this.methodNameRetTypeMap = new HashMap<>();
     }
 
     public static SemanticVisitor collecting() {
@@ -72,11 +72,11 @@ public class SemanticVisitor implements ISemanticVisitor {
     }
 
     public ArrayList<String> getErrors() {
-        return new ArrayList<String>(this.errors);
+        return new ArrayList<>(this.errors);
     }
 
     public ArrayList<Integer> getErrorLineNumbers() {
-        return new ArrayList<Integer>(this.errorLineNumbers);
+        return new ArrayList<>(this.errorLineNumbers);
     }
 
     public boolean passOrNot(){
@@ -268,15 +268,15 @@ public class SemanticVisitor implements ISemanticVisitor {
             error(obj.getCondition().getLineNum(),
                     "if 条件必须是 bool，实际为 " + typeName(this.currType));
 
-        HashSet<String> before = new HashSet<String>(this.currMethodLocalVar);
-        this.currMethodLocalVar = new HashSet<String>(before);
+        HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
+        this.currMethodLocalVar = new HashSet<>(before);
         this.visit(obj.getThenStmt());
-        HashSet<String> thenUnassigned = new HashSet<String>(this.currMethodLocalVar);
+        HashSet<String> thenUnassigned = new HashSet<>(this.currMethodLocalVar);
 
         if (obj.getElseStmt() != null) {
-            this.currMethodLocalVar = new HashSet<String>(before);
+            this.currMethodLocalVar = new HashSet<>(before);
             this.visit(obj.getElseStmt());
-            HashSet<String> elseUnassigned = new HashSet<String>(this.currMethodLocalVar);
+            HashSet<String> elseUnassigned = new HashSet<>(this.currMethodLocalVar);
             thenUnassigned.addAll(elseUnassigned);
             this.currMethodLocalVar = thenUnassigned;
         } else {
@@ -358,7 +358,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     @Override
     public void visit(Ast.Method.MethodSingle obj) {
         MethodVarTable mTable = new MethodVarTable();
-        this.currMethodLocalVar = new HashSet<String>();
+        this.currMethodLocalVar = new HashSet<>();
         for( Ast.Declare.T dec : obj.getLocals()){
             Ast.Declare.DeclareSingle declareSingle = (Ast.Declare.DeclareSingle) dec;
             if (!isArrayType(declareSingle.getType())) {
@@ -533,9 +533,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
             error(obj.getCondition().getLineNum(), "while 条件必须是 bool，实际为 " + typeName(this.currType));
-        HashSet<String> before = new HashSet<String>(this.currMethodLocalVar);
+        HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
-        this.currMethodLocalVar = new HashSet<String>(before);
+        this.currMethodLocalVar = new HashSet<>(before);
         this.visit(obj.getBody());
         loopDepth--;
         this.currMethodLocalVar = before;
@@ -549,9 +549,9 @@ public class SemanticVisitor implements ISemanticVisitor {
         this.visit(obj.getCondition());
         if( this.currType.getKind() != TypeKind.BOOL )
             error(obj.getCondition().getLineNum(), "for 条件必须是 bool，实际为 " + typeName(this.currType));
-        HashSet<String> before = new HashSet<String>(this.currMethodLocalVar);
+        HashSet<String> before = new HashSet<>(this.currMethodLocalVar);
         loopDepth++;
-        this.currMethodLocalVar = new HashSet<String>(before);
+        this.currMethodLocalVar = new HashSet<>(before);
         this.visit(obj.getBody());
         if (obj.getUpdate() != null) {
             this.visit(obj.getUpdate());
@@ -633,7 +633,7 @@ public class SemanticVisitor implements ISemanticVisitor {
     }
 
     private ArrayList<Character> printfPlaceholders(String format, int lineNum) {
-        ArrayList<Character> placeholders = new ArrayList<Character>();
+        ArrayList<Character> placeholders = new ArrayList<>();
         for (int i = 0; i < format.length(); i++) {
             if (format.charAt(i) != '%') {
                 continue;

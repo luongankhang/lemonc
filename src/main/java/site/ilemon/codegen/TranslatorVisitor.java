@@ -63,7 +63,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     private HashMap<String, List<Ast.Type.T>> methodFormalTypes;
 
     public TranslatorVisitor() {
-        this.stmts = new ArrayList<Ast.Stmt.T>();
+        this.stmts = new ArrayList<>();
         this.classId = null;
         this.indexTable = null;
         this.type = null;
@@ -73,7 +73,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         this.classId = null;
         this.mainClass = null;
         this.prog = null;
-        this.methodFormalTypes = new HashMap<String, List<Ast.Type.T>>();
+        this.methodFormalTypes = new HashMap<>();
     }
 
     private void emit(Ast.Stmt.T stmt) {
@@ -96,13 +96,13 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private List<Integer> makelist(int index) {
-        List<Integer> list = new ArrayList<Integer>();
+        List<Integer> list = new ArrayList<>();
         list.add(index);
         return list;
     }
 
     private List<Integer> merge(List<Integer> left, List<Integer> right) {
-        List<Integer> result = new ArrayList<Integer>();
+        List<Integer> result = new ArrayList<>();
         result.addAll(left);
         result.addAll(right);
         return result;
@@ -161,10 +161,10 @@ public class TranslatorVisitor implements ISemanticVisitor {
             return new BoolCode(inner.falseList, inner.trueList);
         }
         if (expr instanceof Expr.True) {
-            return new BoolCode(makelist(emitJump(new Ast.Stmt.Goto(null))), new ArrayList<Integer>());
+            return new BoolCode(makelist(emitJump(new Ast.Stmt.Goto(null))), new ArrayList<>());
         }
         if (expr instanceof Expr.False) {
-            return new BoolCode(new ArrayList<Integer>(), makelist(emitJump(new Ast.Stmt.Goto(null))));
+            return new BoolCode(new ArrayList<>(), makelist(emitJump(new Ast.Stmt.Goto(null))));
         }
         if (expr instanceof Expr.GT) return translateComparison((Expr.GT) expr, ">");
         if (expr instanceof Expr.LT) return translateComparison((Expr.LT) expr, "<");
@@ -826,7 +826,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         MainClass.MainClassSingle mainClassSingle = (MainClass.MainClassSingle) obj;
         this.classId = mainClassSingle.getClassId();
         List<Ast.Method.MethodSingle> methods = new ArrayList<>();
-        this.methodFormalTypes = new HashMap<String, List<Ast.Type.T>>();
+        this.methodFormalTypes = new HashMap<>();
         for (int i = 0; i < mainClassSingle.getMethods().size(); i++) {
             Method.MethodSingle methodSingle = (Method.MethodSingle) mainClassSingle.getMethods().get(i);
             List<Ast.Type.T> formalTypes = new ArrayList<>();

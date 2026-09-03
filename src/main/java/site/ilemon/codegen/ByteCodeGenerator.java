@@ -40,7 +40,8 @@ public class ByteCodeGenerator implements Visitor {
 
     private void writeln(String s)
     {
-        write(s + "\n");
+        write(s);
+        write("\n");
     }
 
     private void write(String s)

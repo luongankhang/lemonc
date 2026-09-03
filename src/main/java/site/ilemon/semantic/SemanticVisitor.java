@@ -112,6 +112,8 @@ public class SemanticVisitor implements ISemanticVisitor {
             error(lineNum, String.format(
                     "运算符 '%s' 不支持数组操作数：左侧为 %s，右侧为 %s",
                     operator, typeName(leftType), typeName(rightType)));
+            this.currType = unknownType();
+            return;
         }
         Ast.Type.T promoted = promoteNumeric(leftType, rightType);
         if (promoted != null) {
@@ -131,6 +133,7 @@ public class SemanticVisitor implements ISemanticVisitor {
             typeError(DiagnosticCodes.TYPE_OPERATOR, "bool", typeName(leftType) + " and " + typeName(rightType),
                     "binary expression", lineNum, null, "operator '" + operator + "'", "use boolean operands");
         }
+        this.currType = new Ast.Type.Bool();
     }
 
     @Override

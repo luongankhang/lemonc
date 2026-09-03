@@ -367,7 +367,7 @@ public class Ast {
          */
         public enum TypeKind {
             INT, FLOAT, DOUBLE, BOOL, BYTE, STRING, VOID,
-            INT_ARRAY, FLOAT_ARRAY, DOUBLE_ARRAY, BOOL_ARRAY, STRING_ARRAY
+            INT_ARRAY, FLOAT_ARRAY, DOUBLE_ARRAY, BOOL_ARRAY, STRING_ARRAY, BYTE_ARRAY
         }
 
         public sealed abstract static class T{
@@ -478,6 +478,20 @@ public class Ast {
             public TypeKind getKind() { return TypeKind.INT_ARRAY; }
             @Override
             public String toString() { return "@int[]"; }
+            @Override
+            public void accept(ISemanticVisitor v) { v.visit(this); }
+        }
+
+        public non-sealed static class ByteArray extends T {
+            private int size;
+            public int getSize() { return this.size; }
+            public void setSize(int size) { this.size = size; }
+            public ByteArray() { this.size = -1; }
+            public ByteArray(int size) { this.size = size; }
+            @Override
+            public TypeKind getKind() { return TypeKind.BYTE_ARRAY; }
+            @Override
+            public String toString() { return "@byte[]"; }
             @Override
             public void accept(ISemanticVisitor v) { v.visit(this); }
         }

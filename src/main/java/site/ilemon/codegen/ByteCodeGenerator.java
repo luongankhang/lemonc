@@ -361,6 +361,7 @@ public class ByteCodeGenerator implements Visitor {
             case VOID -> "V";
             case STRING -> "Ljava/lang/String;";
             case INT_ARRAY -> "[I";
+            case BYTE_ARRAY -> "[B";
             case FLOAT_ARRAY -> "[F";
             case DOUBLE_ARRAY -> "[D";
             case BOOL_ARRAY -> "[Z";
@@ -729,6 +730,11 @@ public class ByteCodeGenerator implements Visitor {
     }
 
     @Override
+    public void visit(Ast.Type.ByteArray obj) {
+
+    }
+
+    @Override
     public void visit(Ast.Type.Bool obj) {
 
     }
@@ -738,6 +744,7 @@ public class ByteCodeGenerator implements Visitor {
     public void visit(Ast.Stmt.Newarray s) {
         String type = switch (s.elementType) {
             case Ast.Type.Int i -> "int";
+            case Ast.Type.Byte b -> "byte";
             case Ast.Type.Float f -> "float";
             case Ast.Type.Double d -> "double";
             case Ast.Type.Bool b -> "boolean";

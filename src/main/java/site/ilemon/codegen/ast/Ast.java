@@ -148,6 +148,14 @@ public String id;
             public String toString() { return "@int[]"; }
         }
 
+        public static class ByteArray extends T {
+            public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
+            @Override
+            public TypeKind getKind() { return TypeKind.BYTE_ARRAY; }
+            @Override
+            public String toString() { return "@byte[]"; }
+        }
+
         public static class FloatArray extends T {
             public void accept(site.ilemon.codegen.Visitor v) { v.visit(this); }
 @Override

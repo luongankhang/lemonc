@@ -909,7 +909,7 @@ public class SemanticVisitor implements ISemanticVisitor {
         TypeKind kind = type.getKind();
         return kind == TypeKind.INT_ARRAY || kind == TypeKind.FLOAT_ARRAY
                 || kind == TypeKind.DOUBLE_ARRAY || kind == TypeKind.BOOL_ARRAY
-                || kind == TypeKind.STRING_ARRAY;
+                || kind == TypeKind.STRING_ARRAY || kind == TypeKind.BYTE_ARRAY;
     }
 
     /**
@@ -984,6 +984,11 @@ public class SemanticVisitor implements ISemanticVisitor {
 
     @Override
     public void visit(Ast.Type.IntArray obj) {
+        this.currType = obj;
+    }
+
+    @Override
+    public void visit(Ast.Type.ByteArray obj) {
         this.currType = obj;
     }
 
@@ -1109,9 +1114,12 @@ public class SemanticVisitor implements ISemanticVisitor {
         }
         // 检查赋值类型
         this.visit(obj.getExpr());
-        if (!isMatch(elementType, this.currType)) {
-            typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(elementType), typeName(this.currType),
-                    expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "array element assignment", null);
+        if (!isAssignable(elementType, this.currType, obj.getExpr())) {
+            if (!byteRangeErrorIfNeeded(elementType, this.currType, obj.getExpr(), obj.getLineNum(), obj.getSpan(),
+                    "array element assignment")) {
+                typeError(DiagnosticCodes.TYPE_ASSIGNMENT, typeName(elementType), typeName(this.currType),
+                        expressionName(obj.getExpr()), obj.getLineNum(), obj.getSpan(), "array element assignment", null);
+            }
         }
     }
 
@@ -1119,6 +1127,8 @@ public class SemanticVisitor implements ISemanticVisitor {
     private Ast.Type.T getElementType(Ast.Type.T arrayType) {
         if (arrayType instanceof Ast.Type.IntArray) {
             return new Ast.Type.Int();
+        } else if (arrayType instanceof Ast.Type.ByteArray) {
+            return new Ast.Type.Byte();
         } else if (arrayType instanceof Ast.Type.FloatArray) {
             return new Ast.Type.Float();
         } else if (arrayType instanceof Ast.Type.DoubleArray) {

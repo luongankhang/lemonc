@@ -339,6 +339,8 @@ public class Parser {
 	private Ast.Type.T createArrayType(Ast.Type.T baseType, int size) {
 		if (baseType instanceof Ast.Type.Int) {
 			return new Ast.Type.IntArray(size);
+		} else if (baseType instanceof Ast.Type.Byte) {
+			return new Ast.Type.ByteArray(size);
 		} else if (baseType instanceof Ast.Type.Float) {
 			return new Ast.Type.FloatArray(size);
 		} else if (baseType instanceof Ast.Type.Double) {

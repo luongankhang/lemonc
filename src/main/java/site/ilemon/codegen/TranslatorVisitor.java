@@ -272,7 +272,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private void emitStore(Ast.Type.T type, int localIndex) {
-        if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.FloatArray
+        if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.ByteArray || type instanceof Ast.Type.FloatArray
                 || type instanceof Ast.Type.DoubleArray || type instanceof Ast.Type.BoolArray) emit(new Ast.Stmt.Astore(localIndex));
         else if (type instanceof Ast.Type.Double) emit(new Ast.Stmt.Dstore(localIndex));
         else if (type instanceof Ast.Type.Float) emit(new Ast.Stmt.Fstore(localIndex));
@@ -280,7 +280,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     private void emitLoad(Ast.Type.T type, int localIndex) {
-        if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.FloatArray
+        if (type instanceof Ast.Type.IntArray || type instanceof Ast.Type.ByteArray || type instanceof Ast.Type.FloatArray
                 || type instanceof Ast.Type.DoubleArray || type instanceof Ast.Type.BoolArray) emit(new Ast.Stmt.Aload(localIndex));
         else if (type instanceof Ast.Type.Double) emit(new Ast.Stmt.Dload(localIndex));
         else if (type instanceof Ast.Type.Float) emit(new Ast.Stmt.Fload(localIndex));
@@ -376,6 +376,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (type instanceof Type.Str) return new Ast.Type.Str();
         if (type instanceof Type.Void) return new Ast.Type.Void();
         if (type instanceof Type.IntArray) return new Ast.Type.IntArray();
+        if (type instanceof Type.ByteArray) return new Ast.Type.ByteArray();
         if (type instanceof Type.FloatArray) return new Ast.Type.FloatArray();
         if (type instanceof Type.DoubleArray) return new Ast.Type.DoubleArray();
         if (type instanceof Type.BoolArray) return new Ast.Type.BoolArray();
@@ -389,6 +390,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private boolean isSourceArrayType(Type.T type) {
         return type instanceof Type.IntArray
+                || type instanceof Type.ByteArray
                 || type instanceof Type.FloatArray
                 || type instanceof Type.DoubleArray
                 || type instanceof Type.BoolArray
@@ -397,6 +399,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private boolean isCodegenArrayType(Ast.Type.T type) {
         return type != null && (type.getKind() == TypeKind.INT_ARRAY
+                || type.getKind() == TypeKind.BYTE_ARRAY
                 || type.getKind() == TypeKind.FLOAT_ARRAY
                 || type.getKind() == TypeKind.DOUBLE_ARRAY
                 || type.getKind() == TypeKind.BOOL_ARRAY
@@ -405,6 +408,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private Ast.Type.T arrayElementType(Type.T type) {
         if (type instanceof Type.IntArray) return new Ast.Type.Int();
+        if (type instanceof Type.ByteArray) return new Ast.Type.Byte();
         if (type instanceof Type.FloatArray) return new Ast.Type.Float();
         if (type instanceof Type.DoubleArray) return new Ast.Type.Double();
         if (type instanceof Type.BoolArray) return new Ast.Type.Bool();
@@ -414,6 +418,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private int arraySize(Type.T type) {
         if (type instanceof Type.IntArray) return ((Type.IntArray) type).getSize();
+        if (type instanceof Type.ByteArray) return ((Type.ByteArray) type).getSize();
         if (type instanceof Type.FloatArray) return ((Type.FloatArray) type).getSize();
         if (type instanceof Type.DoubleArray) return ((Type.DoubleArray) type).getSize();
         if (type instanceof Type.BoolArray) return ((Type.BoolArray) type).getSize();
@@ -923,7 +928,7 @@ public class TranslatorVisitor implements ISemanticVisitor {
 
     private void emitPrintfValue(Expr.T expr) {
         this.visit(expr);
-        if (this.type instanceof Ast.Type.Int) {
+        if (this.type instanceof Ast.Type.Int || this.type instanceof Ast.Type.Byte) {
             emit(new Ast.Stmt.Printf(new Ast.Type.Int(), null));
         } else if (this.type instanceof Ast.Type.Float) {
             emit(new Ast.Stmt.Printf(new Ast.Type.Float(), null));
@@ -1102,6 +1107,11 @@ public class TranslatorVisitor implements ISemanticVisitor {
     }
 
     @Override
+    public void visit(Type.ByteArray obj) {
+        this.type = new Ast.Type.ByteArray();
+    }
+
+    @Override
     public void visit(Type.FloatArray obj) {
         this.type = new Ast.Type.FloatArray();
     }
@@ -1132,6 +1142,9 @@ public class TranslatorVisitor implements ISemanticVisitor {
         if (obj.getElementType() instanceof Type.Int) {
             emit(new Ast.Stmt.Iaload());
             this.type = new Ast.Type.Int();
+        } else if (obj.getElementType() instanceof Type.Byte) {
+            emit(new Ast.Stmt.Baload());
+            this.type = new Ast.Type.Byte();
         } else if (obj.getElementType() instanceof Type.Float) {
             emit(new Ast.Stmt.Faload());
             this.type = new Ast.Type.Float();
@@ -1167,6 +1180,8 @@ public class TranslatorVisitor implements ISemanticVisitor {
         // 根据数组元素类型生成存储指令
         if (obj.getElementType() instanceof Type.Int) {
             emit(new Ast.Stmt.Iastore());
+        } else if (obj.getElementType() instanceof Type.Byte) {
+            emit(new Ast.Stmt.Bastore());
         } else if (obj.getElementType() instanceof Type.Float) {
             emitWideningConversion(new Ast.Type.Float());
             emit(new Ast.Stmt.Fastore());

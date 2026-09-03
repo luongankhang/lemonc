@@ -87,6 +87,7 @@ public interface Visitor {
     void visit(Ast.Type.Str obj);
     void visit(Ast.Type.Bool obj);
     void visit(Ast.Type.Byte obj);
+    void visit(Ast.Type.ByteArray obj);
     void visit(Ast.Type.StringArray obj);
 
 }
